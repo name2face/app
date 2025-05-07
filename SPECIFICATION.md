@@ -2,7 +2,7 @@
 
 This document outlines the planned features, design considerations, and technical decisions for the Name2Face application. It serves as a guide during development.
 
-**Status:** Draft - Sections 1-3 refined. UI details (Section 4) and Technical Decisions (Section 5) pending detailed review.
+**Status:** Draft - Sections 1-4 refined. Technical Decisions (Section 5) pending detailed review.
 
 ## 1. Core Purpose & Vision
 
@@ -144,16 +144,26 @@ This document outlines the planned features, design considerations, and technica
 
 *   **Navigation:** **Stack Navigation** using **React Navigation**. Key flows updated below.
 *   **Key Screens:**
-    *   Home Screen (with `New Name to Face` / `Recall Name to Face` buttons/cards)
-    *   `Add Person Screen` (Name input + `Save` [to Home] and `Add Details` [to Add Details Screen] buttons)
-    *   `Add Details Screen` (Accessed from `Add Person`. Contains editable Name, Memory Hooks, Quick Tags, Custom Tags, Gender. Save -> Person Detail, Cancel -> Home)
-    *   `Edit Details Screen` (Accessed from `Person Detail`. Pre-populated, fully editable. Save -> Person Detail, Cancel -> Person Detail, Delete -> Confirmation -> Home)
-    *   Search Query Screen: Presents input fields corresponding to searchable data (`Name` fragment, `memoryHooks` keywords, `Tags`). Users fill in any known details.
+    *   **Home Screen:** Displays two prominent, distinct calls to action.
+        *   **Initial Design Concept for Buttons:**
+            *   Both buttons are envisioned as variations of a conceptual app logo: a square with rounded corners, a blue background, and the silhouette of a light gray, forward-facing bald person's head.
+            *   **`Recall Name to Face` Button:** The silhouette contains a question mark that is the same blue as the background. Text label: "Recall Name to Face" (or similar, placed appropriately with the icon).
+            *   **`New Name to Face` Button:** Similar design, but the silhouette contains a plus sign (same blue as the background) instead of a question mark. Text label: "New Name to Face" (or similar, placed appropriately with the icon).
+        *   These buttons/cards initiate the respective flows:
+            *   `New Name to Face`: Initiates the flow for adding a new person.
+            *   `Recall Name to Face`: Navigates to the `Search Query Screen`.
+    *   **`Add Person Screen`:** (Name input + `Save` [to Home] and `Add Details` [to Add Details Screen] buttons)
+    *   **`Add Details Screen`:** (Accessed from `Add Person`. Contains editable Name, Memory Hooks, Quick Tags, Custom Tags, Gender. Save -> Person Detail, Cancel -> Home)
+    *   **`Edit Details Screen`:** (Accessed from `Person Detail`. Pre-populated, fully editable. Save -> Person Detail, Cancel -> Person Detail, Delete -> Confirmation -> Home)
+    *   **`Search Query Screen`:** Presents input fields corresponding to searchable data. Users fill in any known details to initiate a search.
+        *   **Name Input:** A standard text input field for partial name matching.
+        *   **Memory Hooks Input:** A text input field for keywords to search within memory hooks.
+        *   **Tags Input:** A text input field where users can type one or more tags to search for (e.g., comma-separated).
         *   **Gender Filter:** Include a Picker/Dropdown labeled "Gender" to filter by. Options: "Any" (default), "Female", "Male", "Other", "Not Specified".
-    *   Search Results Screen (Card layout, display context for match, handle "No Results" state)
-    *   Person Detail Screen (Full view of saved info, Edit button in header)
-    *   Settings Screen? [Decision: Defer for V1]
-*   **Visual Design:** **Initial focus on functionality**. Aim for a clean, minimalist look following basic platform conventions (e.g., standard fonts, simple color palette with one accent color). Detailed styling TBD. Emphasize clear visual hierarchy and spacing on the `Add Details` / `Edit Details` Screens.
+    *   **`Search Results Screen`:** (Card layout, display context for match, handle "No Results" state). Each card should display the person's `name` prominently. Below the name, display **context about the match**, such as the specific `tag`(s) that matched the query or a short snippet (e.g., max 1-2 lines or ~100 characters) from the `memoryHooks` containing the matched keyword(s).
+    *   **`Person Detail Screen`:** (Full view of saved info, Edit button in header)
+    *   **Settings Screen?** [Decision: Defer for V1]
+*   **Visual Design:** **Initial focus on functionality**. Aim for a clean, minimalist look following basic platform conventions (e.g., standard fonts, simple color palette with one accent color). Emphasize clear visual hierarchy, adequate spacing, and aim for good default accessibility (e.g., sufficient contrast, reasonable tap target sizes). Detailed styling TBD (with specific concepts like the Home Screen buttons noted above).
 *   **Key Interactions:**
     *   **Adding a Person (Quick Add):** Home -> `Add Person Screen` -> Enter Name -> Tap `Save` -> [Duplicate Check Dialog?] -> Back to Home.
     *   **Adding a Person (With Details):** Home -> `Add Person Screen` -> Enter Name -> Tap `Add Details` -> `Add Details Screen` -> (Optionally edit name), Fill Details (Hooks, Tags, Gender) -> Tap `Save` -> [Duplicate Check Dialog?] -> Navigate to `Person Detail Screen`.
