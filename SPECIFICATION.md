@@ -2,7 +2,7 @@
 
 This document outlines the planned features, design considerations, and technical decisions for the Name2Face application. It serves as a guide during development.
 
-**Status:** Draft - Sections 1-4 refined. Technical Decisions (Section 5) pending detailed review.
+**Status:** Draft - Sections 1-4 & 6-7 refined. Section 5 (Technical Decisions) to be finalized by Kevin (Programmer). Loading indicator specifics added.
 
 ## 1. Core Purpose & Vision
 
@@ -18,6 +18,7 @@ This document outlines the planned features, design considerations, and technica
         1.  The screen prominently displays a text input field labeled "Person's Name". Input should be trimmed of leading/trailing whitespace.
         2.  As the user types a name (must be non-empty after trimming), two buttons become active below the input field: `Save` and `Add Details`.
         3.  **Tapping `Save`:**
+            *   **Loading Feedback:** Upon tapping `Save`, the button should become disabled, and a **spinning plus sign icon** (stylistically similar to the `New Name to Face` home screen button concept) should be displayed (e.g., on the button or nearby) to indicate processing. This feedback remains until navigation or a dialog is presented.
             *   Perform a case-insensitive check if a person with the entered name already exists in the database.
             *   **If the name does NOT exist:** Create a new person record saving *only* the trimmed name. Navigate back to the `Home Screen`. (`memoryHooks`, `tags`, `gender` will be null/empty).
             *   **If the name DOES exist:**
@@ -47,7 +48,7 @@ This document outlines the planned features, design considerations, and technica
             *   **Interaction:** Tapping a tag adds it to the person's tag list. Tapping again removes it.
         *   **Custom Tags:** UI elements for adding user-defined tags:
             *   An area displaying currently added tags (both Quick Tags and custom ones, e.g., as chips/badges). Tapping an added tag removes it.
-            *   A text input field (labeled e.g., "Add Custom Tag") with an 'Add' button (or uses Enter key) to add user-defined tags.
+            *   A text input field (labeled e.g., "Add Custom Tag") with an 'Add' button (or uses Enter key) to add user-defined tags. Tags should be trimmed of leading/trailing whitespace. Empty tags should not be added.
             *   *(Data Model Note: Selected Quick Tags and Custom Tags are stored together in the `tags` array field.)*
         *   **Gender Selection (Optional):** Placed towards the bottom.
             *   **Label:** "Gender (Optional)".
@@ -55,10 +56,11 @@ This document outlines the planned features, design considerations, and technica
             *   **Options:** "Prefer not to specify" (default, saves `null`), "Female", "Male", "Other".
         *   **Action Buttons (Bottom - Add Flow):**
             *   **`Save` Button:**
-                1.  Validate input (e.g., Name field should not be empty after trimming).
-                2.  Perform a case-insensitive check if a person with the name currently in the *editable Name input field* (after trimming) already exists in the database.
-                3.  **If the name does NOT exist:** Save the complete new person record (trimmed name, `memoryHooks` text, selected `tags`, and `gender`) to the database. Navigate to the `Person Detail Screen` for the newly added person.
-                4.  **If the name DOES exist:**
+                1.  **Loading Feedback:** Upon tapping `Save`, the button should become disabled, and a **spinning plus sign icon** (stylistically similar to the `New Name to Face` home screen button concept) should be displayed (e.g., on the button or nearby) to indicate processing. This feedback remains until navigation or a dialog is presented.
+                2.  Validate input (e.g., Name field should not be empty after trimming).
+                3.  Perform a case-insensitive check if a person with the name currently in the *editable Name input field* (after trimming) already exists in the database.
+                4.  **If the name does NOT exist:** Save the complete new person record (trimmed name, `memoryHooks` text, selected `tags`, and `gender`) to the database. Navigate to the `Person Detail Screen` for the newly added person.
+                5.  **If the name DOES exist:**
                     *   Display a confirmation dialog:
                         *   **Title:** "Duplicate Name"
                         *   **Message:** "A person named '[Entered Name]' already exists. Save this new entry anyway?"
@@ -74,12 +76,13 @@ This document outlines the planned features, design considerations, and technica
     *   **`Edit Details Screen`:**
         *   **Purpose (Edit Flow):** Allows editing *all* details (`name`, `memoryHooks`, `tags`, `gender`) of an *existing* person.
         *   **Visible Title:** "Edit Details" or "Edit [Original Name]".
-        *   **Layout & Components (Edit Flow):** Similar layout to the `Add Details Screen`, but pre-populated with all existing data for that person. All fields are editable (Name, Memory Hooks, Tags management, Gender). The `name` input should have leading/trailing whitespace trimmed before saving.
+        *   **Layout & Components (Edit Flow):** Similar layout to the `Add Details Screen`, but pre-populated with all existing data for that person. All fields are editable (Name, Memory Hooks, Tags management, Gender). The `name` input should have leading/trailing whitespace trimmed before saving. Custom tags added should also be trimmed and not be empty.
         *   **Action Buttons (Bottom - Edit Flow):**
             *   **`Save` Button:**
-                1.  Validate input (e.g., Name field should not be empty after trimming).
-                2.  Get the potentially modified `name`, `memoryHooks`, `tags`, and `gender` from the input fields. Trim leading/trailing whitespace from the `name`.
-                3.  **Duplicate Name Check:**
+                1.  **Loading Feedback:** Upon tapping `Save`, the button should become disabled, and a **spinning plus sign icon** (stylistically similar to the `New Name to Face` home screen button concept) should be displayed (e.g., on the button or nearby) to indicate processing. This feedback remains until navigation or a dialog is presented.
+                2.  Validate input (e.g., Name field should not be empty after trimming).
+                3.  Get the potentially modified `name`, `memoryHooks`, `tags`, and `gender` from the input fields. Trim leading/trailing whitespace from the `name`.
+                4.  **Duplicate Name Check:**
                     *   Let `editedPersonId` be the ID of the person being edited.
                     *   Let `newName` be the trimmed name entered by the user.
                     *   Perform a case-insensitive check to see if *another* person (i.e., a record with an ID different from `editedPersonId`) already exists with `newName`.
@@ -125,7 +128,7 @@ This document outlines the planned features, design considerations, and technica
 *   **Search/Filter:** (Mechanism Description)
     *   Searchable Fields: `name`, `memoryHooks` content (full text search recommended), `tags` (search for presence of specific tags), `gender`. Searches on `name`, `memoryHooks`, and `tags` should be **case-insensitive**.
     *   Filter Options & Logic: Filtering happens implicitly via the `Search Query Screen` inputs. The search finds results matching **any** of the specified criteria. Results are then **ranked by relevance**.
-    *   Relevance Factors: Relevance is primarily determined by the **number and type** of criteria matched. Matching more criteria increases relevance. Matches are generally weighted with `name` matches being most important, followed by `tags`, then `memoryHooks`. (Exact scoring algorithm TBD).
+    *   Relevance Factors: Relevance is primarily determined by the **number and type** of criteria matched. Matching more criteria increases relevance. Matches are generally weighted with `name` matches being most important, followed by `tags`, then `memoryHooks`. (Exact scoring algorithm TBD by Kevin).
     *   UI: The primary search UI is the dedicated `Search Query Screen`.
 
 ## 3. Data Model (Information Stored)
@@ -146,32 +149,43 @@ This document outlines the planned features, design considerations, and technica
 *   **Key Screens:**
     *   **Home Screen:** Displays two prominent, distinct calls to action.
         *   **Initial Design Concept for Buttons:**
-            *   Both buttons are envisioned as variations of a conceptual app logo: a square with rounded corners, a blue background, and the silhouette of a light gray, forward-facing bald person's head.
-            *   **`Recall Name to Face` Button:** The silhouette contains a question mark that is the same blue as the background. Text label: "Recall Name to Face" (or similar, placed appropriately with the icon).
-            *   **`New Name to Face` Button:** Similar design, but the silhouette contains a plus sign (same blue as the background) instead of a question mark. Text label: "New Name to Face" (or similar, placed appropriately with the icon).
+            *   Both buttons are envisioned as variations of a conceptual app logo: a square with rounded corners, a placeholder blue background, and the silhouette of a light gray, forward-facing bald person's head (artistic interpretation welcome).
+            *   **`Recall Name to Face` Button:** The silhouette contains a question mark that is the same color as the placeholder blue background. Text label: "Recall Name to Face" (or similar, placed appropriately with the icon).
+            *   **`New Name to Face` Button:** Similar design, but the silhouette contains a plus sign (same color as the placeholder blue background) instead of a question mark. Text label: "New Name to Face" (or similar, placed appropriately with the icon).
         *   These buttons/cards initiate the respective flows:
             *   `New Name to Face`: Initiates the flow for adding a new person.
             *   `Recall Name to Face`: Navigates to the `Search Query Screen`.
-    *   **`Add Person Screen`:** (Name input + `Save` [to Home] and `Add Details` [to Add Details Screen] buttons)
-    *   **`Add Details Screen`:** (Accessed from `Add Person`. Contains editable Name, Memory Hooks, Quick Tags, Custom Tags, Gender. Save -> Person Detail, Cancel -> Home)
-    *   **`Edit Details Screen`:** (Accessed from `Person Detail`. Pre-populated, fully editable. Save -> Person Detail, Cancel -> Person Detail, Delete -> Confirmation -> Home)
+    *   **`Add Person Screen`:** (Name input + `Save` [to Home] and `Add Details` [to Add Details Screen] buttons, as detailed in Section 2).
+    *   **`Add Details Screen`:** (Accessed from `Add Person`. Contains editable Name, Memory Hooks, Quick Tags, Custom Tags, Gender. Save -> Person Detail, Cancel -> Home, as detailed in Section 2).
+    *   **`Edit Details Screen`:** (Accessed from `Person Detail`. Pre-populated, fully editable. Save -> Person Detail, Cancel -> Person Detail, Delete -> Confirmation -> Home, as detailed in Section 2).
     *   **`Search Query Screen`:** Presents input fields corresponding to searchable data. Users fill in any known details to initiate a search.
         *   **Name Input:** A standard text input field for partial name matching.
         *   **Memory Hooks Input:** A text input field for keywords to search within memory hooks.
         *   **Tags Input:** A text input field where users can type one or more tags to search for (e.g., comma-separated).
         *   **Gender Filter:** Include a Picker/Dropdown labeled "Gender" to filter by. Options: "Any" (default), "Female", "Male", "Other", "Not Specified".
+        *   **Search Execution Button:** A prominent button (e.g., "Search") that, when tapped, initiates the search.
+            *   **Loading Feedback:** While the search is processing, this button (or a designated area) should display a **spinning question mark icon** (stylistically similar to the `Recall Name to Face` home screen button concept) to indicate activity. The button should be disabled during this processing.
     *   **`Search Results Screen`:** (Card layout, display context for match, handle "No Results" state). Each card should display the person's `name` prominently. Below the name, display **context about the match**, such as the specific `tag`(s) that matched the query or a short snippet (e.g., max 1-2 lines or ~100 characters) from the `memoryHooks` containing the matched keyword(s).
-    *   **`Person Detail Screen`:** (Full view of saved info, Edit button in header)
+    *   **`Person Detail Screen`:** (Full view of saved info, Edit button in header, as detailed in Section 2).
     *   **Settings Screen?** [Decision: Defer for V1]
-*   **Visual Design:** **Initial focus on functionality**. Aim for a clean, minimalist look following basic platform conventions (e.g., standard fonts, simple color palette with one accent color). Emphasize clear visual hierarchy, adequate spacing, and aim for good default accessibility (e.g., sufficient contrast, reasonable tap target sizes). Detailed styling TBD (with specific concepts like the Home Screen buttons noted above).
+*   **Visual Design:** **Initial focus on functionality**. Aim for a clean, minimalist look following basic platform conventions (e.g., standard fonts, simple color palette with one placeholder accent color - blue). Emphasize clear visual hierarchy, adequate spacing, and aim for good default accessibility (e.g., sufficient contrast, reasonable tap target sizes). Detailed styling TBD (with specific concepts like the Home Screen buttons noted above).
 *   **Key Interactions:**
-    *   **Adding a Person (Quick Add):** Home -> `Add Person Screen` -> Enter Name -> Tap `Save` -> [Duplicate Check Dialog?] -> Back to Home.
-    *   **Adding a Person (With Details):** Home -> `Add Person Screen` -> Enter Name -> Tap `Add Details` -> `Add Details Screen` -> (Optionally edit name), Fill Details (Hooks, Tags, Gender) -> Tap `Save` -> [Duplicate Check Dialog?] -> Navigate to `Person Detail Screen`.
-    *   **Recalling a Person:** Home -> `Search Query Screen` -> Enter Hooks/Tags/Name/Gender -> Tap `Search` -> `Search Results Screen` -> Tap Result -> `Person Detail Screen`.
-    *   **Editing a Person:** (Find person via search) -> `Search Results Screen` -> Tap Result -> `Person Detail Screen` -> Tap `Edit` button -> `Edit Details Screen` -> Modify Details -> Tap `Save` -> [Duplicate Check Dialog?] -> Back to `Person Detail Screen`.
+    *   **Adding a Person (Quick Add):** Home -> `Add Person Screen` -> Enter Name -> Tap `Save` -> [Loading Indicator] -> [Duplicate Check Dialog?] -> Back to Home.
+    *   **Adding a Person (With Details):** Home -> `Add Person Screen` -> Enter Name -> Tap `Add Details` -> `Add Details Screen` -> (Optionally edit name), Fill Details (Hooks, Tags, Gender) -> Tap `Save` -> [Loading Indicator] -> [Duplicate Check Dialog?] -> Navigate to `Person Detail Screen`.
+    *   **Recalling a Person:** Home -> `Search Query Screen` -> Enter Hooks/Tags/Name/Gender -> Tap `Search` -> [Loading Indicator] -> `Search Results Screen` -> Tap Result -> `Person Detail Screen`.
+    *   **Editing a Person:** (Find person via search) -> `Search Results Screen` -> Tap Result -> `Person Detail Screen` -> Tap `Edit` button -> `Edit Details Screen` -> Modify Details -> Tap `Save` -> [Loading Indicator] -> [Duplicate Check Dialog?] -> Back to `Person Detail Screen`.
     *   **Deleting a Person:** (Find person) -> `Person Detail Screen` -> Tap `Edit` button -> `Edit Details Screen` -> Tap `Delete` button -> Confirm Dialog -> Tap `Confirm Delete` -> Navigate to `Home Screen`.
+*   **General Interaction Principles:**
+    *   **Loading States:** Provide clear visual feedback (e.g., themed spinning icons as specified, disabled buttons) during asynchronous operations like saving or searching.
+    *   **Error Handling:** For unexpected errors (e.g., database write failure), display a user-friendly, non-technical error message and allow the user to try again or cancel.
 
 ## 5. Technical Decisions
+
+**Developer Note (Kevin):** The following technical decisions are initial recommendations based on the project requirements. Please review these carefully, particularly focusing on:
+*   **`expo-sqlite` FTS:** Confirming and planning for Full-Text Search (FTS) capabilities for the `memoryHooks` field to ensure efficient searching.
+*   **Tag Storage Strategy:** Validating that JSON string serialization for `tags` is adequate for V1 search performance and complexity, or proposing an alternative if necessary.
+*   **Relevance Scoring Algorithm:** Defining the exact algorithm for search result relevance (Section 2, Search/Filter).
+You have the final say on these implementations.
 
 *   **Platform Targets:** iOS, Android (Confirmed)
 *   **Framework:** React Native (Confirmed)
@@ -202,3 +216,4 @@ This document outlines the planned features, design considerations, and technica
 *   **Security:** Data is stored unencrypted locally in V1 (No highly sensitive data anticipated initially). Encryption could be added if requirements change.
 *   **Offline Capability:** App *must* work fully offline for V1 (core requirement).
 *   **Data Persistence:** Data stored locally persists across app restarts but may be lost on app uninstall or device loss (no cloud backup in V1).
+*   **Accessibility (A11y):** Aim for good default accessibility (e.g., sufficient contrast, reasonable tap target sizes, meaningful labels for interactive elements).
