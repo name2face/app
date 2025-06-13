@@ -1,216 +1,216 @@
-# Name2Face App - Development TODO
+# Name2Face App - Development TODO (V1 Moon Shot)
 
-This document tracks the development progress of the Name2Face app, based on the [Specification Document (Draft)](link/to/your/spec/document.md).
+This document tracks the development progress for the full V1 implementation of the Name2Face app, based on the [Specification Document (Draft)](link/to/your/spec/document.md) and the decision to use Firebase with an expanded scope including multiple authentication methods, a web target, and local full-text search on memory hooks.
 
-**Backend Technology:** Supabase (PostgreSQL Database, APIs) will be used as the primary data store instead of purely local SQLite. This provides a solid foundation for future features like multi-device sync, while V1 will focus on core functionality using this backend.
+**Backend Technology:** Firebase (Firestore Database, Authentication, Storage) will be used as the primary data store and backend.
 
-**Current Status:** Setting up the project and defining the data model in Supabase.
+**Current Status:** Setting up the Firebase project and planning the data model, authentication flows, and local search implementation strategy.
 
 ---
 
-## 🎯 Overall Goals for V1
+## 🎯 Overall Goals for V1 (Moon Shot)
 
-*   Implement core features: Add Person, Add Details, Edit, Delete, Search, View Details.
-*   Store all person data reliably in Supabase.
-*   Provide the specified UI/UX, including navigation and loading states.
-*   Meet non-functional requirements (performance, offline capability - **clarification needed for V1 scope**, persistence).
+*   Implement **all** core features AND V2+ considerations defined in the spec (including photos, structured details, and **full-text search on Memory Hooks**).
+*   Implement robust **Email/Password, Google, and Apple Authentication**.
+*   Store all person data, including photos and details, securely in Firebase (Firestore & Storage), linked to authenticated users.
+*   Leverage Firebase's **built-in offline persistence and sync** for reads and writes across all platforms (iOS, Android, Web).
+*   Perform **full-text search on `memoryHooks` locally** using data synced from Firebase.
+*   Provide the specified UI/UX, including navigation, loading states, and visual design concepts, adapted for **Web** as well as native.
+*   Meet non-functional requirements (performance, offline capability, persistence, basic accessibility).
+*   Prepare for deployment to **Google Play, App Store, and Web hosting**.
 
 ---
 
 ## ✅ Technical Foundation
 
-*   [x] Confirm Platform Targets: iOS, Android
-*   [x] Confirm Framework: React Native
+*   [x] Confirm Platform Targets: iOS, Android, **Web (via React Native Web)**
+*   [x] Confirm Framework: React Native + **React Native Web**
 *   [x] Confirm Development Environment: Expo (Managed Workflow)
 *   [x] Confirm Language: TypeScript
 *   [x] Confirm Navigation Library: React Navigation
-*   [x] Confirm Styling: React Native `StyleSheet` API
-*   [x] **DECISION:** Use **Supabase** for the primary data store.
-    *   Supabase will handle the database (PostgreSQL), APIs, and potentially file storage later (V2 for photos).
-    *   This impacts data modeling (PostgreSQL tables), data access (Supabase JS client), and search implementation (PostgreSQL search capabilities).
-    *   **ACTION/CLARIFICATION NEEDED (V1 Offline Requirement):** The spec requires *full* offline capability for V1. Pure Supabase is online. Using Supabase *and* being fully offline in V1 requires a local database cache and synchronization logic (significant complexity). **Need to confirm with [Friend's Name] if V1 MUST be fully offline.**
-        *   *Option A (Simpler V1):* Make V1 primarily online-only using Supabase. If offline, user can view previously loaded data but cannot add/edit/search until online. (Defer full sync for V2).
-        *   *Option B (Complex V1):* Implement a local database (like `expo-sqlite` or WatermelonDB) as a cache layer synced with Supabase. (Adds significant development time).
-        *   *Initial Plan (assuming Option A for scope):* Build V1 primarily online using Supabase. If offline is *critical* for V1, we revisit scope or timeline.
-*   [ ] Choose initial State Management: Start with React's built-in state (`useState`) and Context API (`useContext`).
+*   [x] Confirm Styling: React Native `StyleSheet` API, potentially requiring platform-specific adjustments for Web.
+*   [x] **DECISION:** Use **Firebase** for the backend (Firestore, Storage, Auth).
+    *   Leverage Firebase SDKs' **built-in offline persistence and sync** for reads and writes.
+    *   Implement **authenticated access** using Firebase Auth (Email/Password, Google, Apple).
+*   [x] **DECISION:** Implement **full-text search on `memoryHooks` locally** on the client side, using data fetched from Firestore.
+*   [ ] Choose initial State Management: Start with React's built-in state (`useState`) and Context API (`useContext`). Consider if a more robust solution is needed sooner due to authentication state management, global data cache for search, and data syncing complexity across features.
 
 ---
 
-## 🚧 Development Phases & Tasks
+## 🚧 Development Tasks (Grouped by Feature)
 
-### Phase 0: Project Setup & Supabase Integration
+### Feature: Project Setup & Core Libraries
 
-*   [ ] Create new Expo/React Native project with TypeScript template.
-*   [ ] Install necessary dependencies (`react-navigation`, `@supabase/supabase-js`, etc.).
-*   [ ] Create a new project in Supabase.
-*   [ ] Configure environment variables in the Expo app to connect to Supabase (API URL, anon key).
-*   [ ] **Define Supabase Data Model:**
-    *   [ ] Create `persons` table:
-        *   `id`: `uuid` (Primary Key, auto-generated by Supabase)
-        *   `name`: `text` (NOT NULL)
-        *   `memory_hooks`: `text`
-        *   `gender`: `text` (e.g., 'Female', 'Male', 'Other', or NULL)
-        *   `created_at`: `timestamp with time zone` (Default: `now()`)
-        *   `updated_at`: `timestamp with time zone` (Default: `now()`, Trigger: `ON UPDATE SET updated_at`)
-    *   [ ] Create `tags` table:
-        *   `id`: `uuid` (Primary Key, auto-generated) or `text` (if tags are just the string value and unique) - `text` might be simpler if tags are global strings. Let's go with `text` as the PK for simplicity in V1 tag management.
-        *   `tag_name`: `text` (Primary Key, Unique, NOT NULL) - Use `tag_name` as the ID.
-    *   [ ] Create `person_tags` join table (Many-to-Many relationship):
-        *   `person_id`: `uuid` (Foreign Key to `persons.id`)
-        *   `tag_name`: `text` (Foreign Key to `tags.tag_name`)
-        *   `created_at`: `timestamp with time zone` (Default: `now()`)
-        *   Composite Primary Key: `(person_id, tag_name)`
-    *   [ ] Implement basic Row Level Security (RLS) policies for `persons`, `tags`, `person_tags` (e.g., `SELECT` and `INSERT` for authenticated/anon users if no auth V1, or based on user ID if auth is added).
-*   [ ] Set up Supabase client instance in the app.
+*   [ ] Create new Expo/React Native project with TypeScript template, configuring for React Native Web.
+*   [ ] Install necessary dependencies (`react-navigation`, `@react-native-firebase/app`, `@react-native-firebase/auth`, `@react-native-firebase/firestore`, `@react-native-firebase/storage`, libraries for Google/Apple sign-in, `react-native-image-picker`).
+*   [ ] **Install a client-side full-text search library:** Choose and install a library suitable for JavaScript/TypeScript (e.g., `flexsearch`, `lunr.js`, or evaluate others).
+*   [ ] Create a new project in the Firebase Console.
+*   [ ] Enable Authentication methods (Email/Password, Google, Apple) in Firebase Console. Configure OAuth redirect URIs for web and native.
+*   [ ] Enable Firestore and Storage in Firebase Console.
+*   [ ] Add iOS, Android, and Web apps to the Firebase project and download/configure credentials (e.g., `firebaseConfig` for web, config files for native). Follow Expo setup steps.
+*   [ ] Configure Firebase SDK in the app (initialize app). Handle potential platform differences in initialization.
+*   [ ] Enable Firestore persistence (`enablePersistence()`) for native platforms. *Note: Web persistence is usually enabled by default or handled differently.*
 
-### Phase 1: Basic Data Layer (CRUD)
+### Feature: User Authentication
 
-*   [ ] Write helper functions in the app to interact with Supabase:
-    *   `createPerson(name, details?)`: Inserts into `persons`, handles tags via `person_tags`.
-    *   `updatePerson(id, updates)`: Updates `persons` row by ID, handles tag updates (add/remove from `person_tags`).
-    *   `deletePerson(id)`: Deletes row from `persons` (Supabase Foreign Key cascade should handle `person_tags`).
-    *   `getPersonById(id)`: Fetches person data by ID, including related tags via join.
-    *   `searchPersons(query)`: (Implement in Phase 3)
+*   [ ] Implement UI for Login/Signup screen.
+*   [ ] Implement Email/Password signup flow, including sending verification email.
+*   [ ] Implement Email/Password login flow.
+*   [ ] Implement handling for email verification.
+*   [ ] Implement Google Sign-in flow (requires separate native and web implementations).
+*   [ ] Implement Apple Sign-in flow (requires separate native and web implementations).
+*   [ ] Implement Logout functionality.
+*   [ ] Use Firebase Authentication State Listener (`onAuthStateChanged`) to manage the authenticated user globally.
+*   [ ] Implement Route Protection: Ensure user is authenticated before accessing main app content.
+*   [ ] **Define and implement Firebase Security Rules:**
+    *   [ ] Firestore Rules: Users can only read/write *their own* data (`match /persons/{personId} { allow read, write: if request.auth.uid == resource.data.userId; }`). Ensure `userId` field is present and immutable on create.
+    *   [ ] Storage Rules: Users can only upload/read/delete *their own* photos (`match /photos/{userId}/{fileName} { allow read, write: if request.auth.uid == userId; }`).
 
-### Phase 2: Add Person & Add Details Flow
+### Feature: Data Model & Initial Structure
 
-*   [ ] Create `Home Screen` component with the two primary buttons (`New Name to Face`, `Recall Name to Face`) using the specified icon concepts.
-*   [ ] Implement navigation from `Home Screen` buttons using React Navigation.
-*   [ ] Create `Add Person Screen` component:
-    *   [ ] Name input field.
-    *   [ ] `Save` and `Add Details` buttons (initially disabled).
-    *   [ ] Enable buttons when name input is non-empty (after trim).
-    *   [ ] Implement `Save` button logic:
-        *   [ ] Show loading feedback (spinning plus icon).
-        *   [ ] Perform case-insensitive duplicate name check against Supabase (`SELECT EXISTS(...)`).
-        *   [ ] If no duplicate: Call `createPerson({ name: trimmedName })`.
-        *   [ ] If duplicate: Show "Duplicate Name" dialog.
-        *   [ ] Handle dialog actions (`Add Details`, `Save Anyway`, `Cancel`).
-        *   [ ] On successful save/save anyway: Navigate to `Home Screen`.
-    *   [ ] Implement `Add Details` button logic:
-        *   [ ] Navigate to `Add Details Screen` passing the name.
-*   [ ] Create (or design for reuse as) `Add/Edit Details Screen` component:
-    *   [ ] Receive name (and potentially ID if editing) as navigation params.
-    *   [ ] Name input (pre-filled if editing, potentially editable).
-    *   [ ] Memory Hooks text area.
-    *   [ ] Quick Tags display/interaction (add/remove tags locally in state).
-    *   [ ] Custom Tags input and display (add/remove tags locally in state).
-    *   [ ] Gender selection (Picker/Dropdown).
-    *   [ ] `Save` button (initially Add flow):
-        *   [ ] Show loading feedback (spinning plus icon).
-        *   [ ] Validate name is not empty.
-        *   [ ] Perform case-insensitive duplicate name check against Supabase *if* name was changed or if coming from `Add Person`'s `Add Details` path after a duplicate was found.
-        *   [ ] If no duplicate or `Save Anyway` from dialog: Call `createPerson(...)` with all details (name, hooks, tags, gender). This involves inserting into `persons` and then inserting rows into `person_tags` for each selected tag.
-        *   [ ] Navigate to `Person Detail Screen` for the newly created person.
-    *   [ ] `Cancel` button (Add flow):
-        *   [ ] Show confirmation dialog ("Discard this new entry?").
-        *   [ ] If confirmed: Navigate back to `Home Screen`.
-    *   [ ] `Delete` button: (Implement and make visible/active only in Edit flow - see Phase 4)
+*   [ ] **Define Firestore Data Model:**
+    *   [ ] Top-level `persons` collection.
+    *   [ ] Person Document Fields:
+        *   `id`: Document ID (auto-generated).
+        *   `userId`: `string` (ID of the authenticated user - **REQUIRED by Security Rules**).
+        *   `name`: `string` (Required)
+        *   `memoryHooks`: `string`
+        *   `tags`: `string[]` (Array of strings)
+        *   `gender`: `string | null`
+        *   `createdAt`: `Timestamp` (Server timestamp)
+        *   `updatedAt`: `Timestamp` (Server timestamp, update on edit)
+        *   `photoUrl`: `string | null`
+        *   `photoStoragePath`: `string | null`
+        *   [ ] **Structured Details:** Add fields for V1 structured details (e.g., `birthday: Timestamp | null`, `company: string`, `jobTitle: string`).
+*   [ ] **Define Firebase Storage Structure:** Recommend `/photos/{userId}/{personId}/{fileName}`.
+*   [ ] Write basic data access functions using the Firestore SDK, ensuring all operations filter by the current user's `userId`.
 
-### Phase 3: Search & View Results Flow
+### Feature: Local Data Cache for Search
 
-*   [ ] Create `Search Query Screen` component:
-    *   [ ] Input fields for Name, Memory Hooks, Tags.
-    *   [ ] Gender filter (Picker/Dropdown).
-    *   [ ] `Search` button (initially enabled).
-    *   [ ] Implement `Search` button logic:
-        *   [ ] Show loading feedback (spinning question mark icon), disable button.
-        *   [ ] Call `searchPersons(query)` function.
-        *   [ ] Navigate to `Search Results Screen` passing the results.
-*   [ ] Implement `searchPersons(query)` function using Supabase/PostgreSQL:
-    *   [ ] Construct a single SQL query that combines filtering criteria:
-        *   `ILIKE` for case-insensitive name search.
-        *   PostgreSQL Full-Text Search (`tsvector`, `tsquery`) for `memory_hooks`.
-        *   Join with `person_tags` table to filter by selected tags.
-        *   Equality filter for `gender`.
-    *   [ ] **Implement Relevance Scoring:** Define and apply a simple scoring logic within the SQL query or in app logic after fetching to order results (Name match highest score, then Tags, then Hooks).
-    *   [ ] Fetch combined results from Supabase.
-*   [ ] Create `Search Results Screen` component:
-    *   [ ] Display list of results received from `searchPersons`.
-    *   [ ] Use `Card` layout as specified: prominent name, context snippet (matched tag or memory hook snippet).
-    *   [ ] Implement logic to extract a relevant snippet from `memory_hooks` for the card display based on the search keywords.
-    *   [ ] Display "No matches found" message if results list is empty.
-    *   [ ] Implement tapping a card to navigate to `Person Detail Screen` passing the person's ID.
+*   [ ] **Implement a mechanism to load/maintain a local cache of all person data (or at least `name` and `memoryHooks`) for the current user.** This data is needed for client-side search.
+    *   Option 1: Load all data for the user on app startup or after login. Subscribe to real-time updates (`onSnapshot`) to keep the local cache in sync with Firestore changes (both local persistence and remote).
+    *   Option 2: Load data dynamically when the Search screen is accessed. Still need to handle updates.
+*   [ ] Store this data efficiently in memory or a local state management solution for quick access by the search function.
 
-### Phase 4: View & Edit Person Flow
+### Feature: Add Person Flow
 
-*   [ ] Create `Person Detail Screen` component:
-    *   [ ] Fetch person data using `getPersonById` based on ID from navigation params.
-    *   [ ] Display Name prominently.
-    *   [ ] Conditionally display Tags (as chips/badges) if they exist.
-    *   [ ] Conditionally display Gender if specified (not null, not "Prefer not to specify").
-    *   [ ] Display `createdAt` date.
-    *   [ ] Conditionally display Memory Hooks text if it exists.
-    *   [ ] Add an `Edit` button in the screen header.
-    *   [ ] Implement `Edit` button logic: Navigate to `Edit Details Screen` passing the person's ID.
-*   [ ] Enhance (or reuse) `Add/Edit Details Screen` to handle the Edit flow:
-    *   [ ] When an ID is passed via navigation, fetch existing person data and pre-populate all fields.
-    *   [ ] Change screen title (e.g., "Edit Details for [Name]").
-    *   [ ] Update `Save` button logic (Edit flow):
-        *   [ ] Show loading feedback (spinning plus icon).
-        *   [ ] Validate name.
-        *   [ ] Perform case-insensitive duplicate name check against *other* people in Supabase (`SELECT EXISTS(...) WHERE name = ? AND id != ?`).
-        *   [ ] If no duplicate or `Save Anyway`: Call `updatePerson(id, updates)` with all modified details. This involves updating the `persons` row and syncing `person_tags` (deleting old, inserting new as needed).
-        *   [ ] Navigate back to `Person Detail Screen` for the edited person.
-    *   [ ] Update `Cancel` button logic (Edit flow):
-        *   [ ] Discard local changes. Navigate back to `Person Detail Screen`.
-    *   [ ] Make the `Delete` button visible and active (Edit flow):
-        *   [ ] Implement `Delete` button logic:
-            *   [ ] Show confirmation dialog ("Delete [Person's Name]?").
-            *   [ ] If confirmed: Call `deletePerson(id)`.
-            *   [ ] Navigate back to `Home Screen` after successful deletion.
+*   [ ] Create `Home Screen` component UI with the two primary buttons.
+*   [ ] Implement navigation routes.
+*   [ ] Create `Add Person Screen` component UI.
+*   [ ] Implement name input validation.
+*   [ ] Implement duplicate name check logic: Search the *local cache* of the current user's persons (case-insensitive) for a matching name.
+*   [ ] Implement `Save` button logic (Quick Add):
+    *   Show loading feedback.
+    *   Perform local duplicate check.
+    *   If no duplicate: Add new person document to Firestore (`userId`, `name`). **Firebase SDK automatically handles queuing this write if offline.**
+    *   If duplicate: Show dialog. Handle dialog actions.
+    *   On successful save: Navigate to `Home Screen`.
+*   [ ] Implement `Add Details` button logic: Navigate to `Add/Edit Details Screen` passing the name (and indicating add mode).
 
-### Phase 5: UI Polish & UX Refinements
+### Feature: Add/Edit Details Screen
 
-*   [ ] Implement consistent validation feedback UI (e.g., error messages, input highlighting).
-*   [ ] Refine layout and styling based on spec concepts (e.g., Home screen button styles, card appearance).
-*   [ ] Ensure all specified loading indicators and disabled button states are correctly implemented during async operations.
-*   [ ] Review all confirmation dialogs and ensure messaging is clear.
-*   [ ] Test input trimming logic (leading/trailing whitespace) on all relevant input fields before processing/saving.
-*   [ ] Test edge cases (e.g., very long memory hooks, many tags, special characters in names/tags).
-*   [ ] Add basic accessibility considerations (labels, contrasts).
+*   [ ] Create `Add/Edit Details Screen` component UI for all person data + photo.
+*   [ ] Implement image selection/preview.
+*   [ ] Implement tag input/selection.
+*   [ ] Implement structured details input.
+*   [ ] Implement data loading for Edit mode (fetch by ID from Firestore, scoped to user).
+*   [ ] Implement `Save` button logic (handles both Add and Edit flows):
+    *   Show loading feedback.
+    *   Input validation.
+    *   Duplicate name check: Search the *local cache* (scoped to current user, excluding current person in Edit mode).
+    *   **Photo Handling:** If new photo, upload to Storage (`/photos/{userId}/{personId}/...`). Get URL/path. If photo removed, delete from Storage using path. **Firebase SDK automatically queues these Storage ops if offline.**
+    *   **Firestore Save:** Add new or update existing document with all data, including `userId`, `photoUrl`, `photoStoragePath`, `updatedAt`. **Firebase SDK automatically queues this write if offline.**
+    *   Navigate to `Person Detail Screen`.
+*   [ ] Implement `Cancel` button logic.
 
-### Phase 6: Testing & Release Preparation
+### Feature: Delete Person
 
-*   [ ] Perform comprehensive testing on target devices (iOS, Android).
-*   [ ] Test all user flows (add quick, add detailed, search happy path, search no results, view, edit, delete).
-*   [ ] Test duplicate name scenarios in both add and edit flows.
-*   [ ] Verify data persistence between app sessions.
-*   [ ] (Depending on V1 Offline Decision) Test offline behavior and recovery when online.
-*   [ ] Prepare for Expo build (icons, splash screen, app.json configuration).
+*   [ ] Implement `Delete` button UI (visible on Add/Edit Details Screen in Edit mode).
+*   [ ] Implement confirmation dialog.
+*   [ ] Implement deletion logic (scoped to current user):
+    *   Delete Photo from Firebase Storage using `photoStoragePath`. **Firebase SDK queues if offline.**
+    *   Delete document from `persons` collection by ID. **Firebase SDK queues if offline.**
+*   [ ] Navigate back to `Home Screen` after successful deletion.
+*   [ ] **Important:** Ensure the local cache is updated after a delete operation (either via the `onSnapshot` listener or manually).
+
+### Feature: Search & View Details Flow
+
+*   [ ] Create `Search Query Screen` component UI (Inputs for Name, Memory Hooks, Tags, Gender).
+*   [ ] **Implement `Search` button logic:**
+    *   Show loading feedback.
+    *   Retrieve search terms from inputs.
+    *   Access the local cache of all person data for the current user.
+    *   **Perform Client-Side Search:** Filter the local cache based on **all** criteria:
+        *   Name: Case-insensitive substring or "Starts With" match.
+        *   Memory Hooks: Use the client-side FTS library to perform keyword search within `memoryHooks`.
+        *   Tags: Check if the `tags` array contains any of the search tags.
+        *   Gender: Filter by selected gender.
+    *   Implement client-side **Relevance Scoring:** Rank results based on matches across all fields (Name > Tags > Memory Hooks > Gender).
+    *   Navigate to `Search Results Screen` passing the *sorted* results.
+*   [ ] Create `Search Results Screen` component UI:
+    *   Display list of results (local objects, not necessarily fresh Firestore reads initially).
+    *   Card UI: Name, context snippet (highlighting matches from Name, Tags, or *Memory Hooks* using the FTS library's capabilities if available), Photo thumbnail.
+    *   Handle "No Results".
+    *   Implement tapping a card: **Fetch the full, potentially most up-to-date person data from Firestore by ID** before navigating to `Person Detail Screen`, in case local cache is slightly stale during a sync.
+*   [ ] Create `Person Detail Screen` component UI: Display fetched full person data.
+
+### Feature: UI/UX Refinements
+
+*   [ ] Implement consistent loading indicators and disabled button states.
+*   [ ] Implement consistent validation feedback UI.
+*   [ ] Implement confirmation dialogs.
+*   [ ] Refine layout and styling for native and Web.
+*   [ ] Implement styling for tags.
+*   [ ] Add basic accessibility.
+
+### Feature: React Native Web Adjustments
+
+*   [ ] Test and adjust UI for Web.
+*   [ ] Implement Web-specific authentication.
+*   [ ] Address compatibility issues (especially the chosen local FTS library on Web).
+*   [ ] Ensure navigation works on Web.
+*   [ ] Ensure the local data cache mechanism works correctly with Firestore Web SDK and persistence.
+
+### Feature: Offline & Sync Testing
+
+*   [ ] **Extensive testing of Firebase's built-in offline persistence:**
+    *   Test all CRUD operations while offline.
+    *   Verify data consistency in the local cache while offline.
+    *   Verify changes sync correctly when online.
+    *   Test reads while offline (should show cached data from persistence).
+    *   Test conflict resolution (Last Write Wins) by creating/editing same data points offline/online.
+    *   Test Storage operations (upload/delete) offline sync.
+*   [ ] **Test local search functionality while offline:** Ensure search uses the data available in the offline cache and is performant.
+
+### Feature: Deployment Preparation
+
+*   [ ] Configure `app.json` for native builds.
+*   [ ] Prepare signing keys/certificates.
+*   [ ] Build release versions (iOS/Android).
+*   [ ] Prepare for Web deployment (`expo export:web`, static hosting).
+*   [ ] Publish to stores and host web version.
 
 ---
 
 ## 🔧 Technical Notes & Decisions
 
-*   **Data Storage:** Supabase (PostgreSQL) is the backend.
-*   **Tags:** Stored in a many-to-many relationship using `person_tags` join table in Supabase.
-*   **Search:** Will leverage PostgreSQL's `ILIKE` for name, Full-Text Search (FTS) capabilities for `memory_hooks`, and joins for `tags`. Relevance scoring will be implemented in the query or app.
-*   **Offline:** V1 scope is currently planned as primarily online with Supabase. **Needs confirmation if full offline V1 is required.** Implementing full offline sync is a significant V2 task or requires adjusting the V1 timeline/scope.
-*   **Relevance Scoring Algorithm:** *[Define Simple Algorithm Here, e.g., using PostgreSQL's FTS ranking + custom scoring for name/tags.]*
-    *   Example (Simple): `score = (name_match ? 3 : 0) + (tag_matches.count * 2) + (hooks_fts_rank > 0 ? 1 : 0)` - Order by `score DESC`. (This is a starting point, actual SQL ranking functions are better).
+*   **Data Storage:** Firebase (Firestore, Storage, Auth). Data is user-scoped.
+*   **Offline Sync:** **Built-in** via Firebase SDK persistence. Data accessed while online is cached. Writes are queued and synced. Conflict resolution (Last Write Wins) is handled by Firebase.
+*   **Local Cache:** A client-side mechanism is required to load and maintain a cache of user's person data for local search. This cache needs to stay updated via Firestore listeners.
+*   **Search:**
+    *   Firestore queries are used for Name ("Starts With"), Tags (`array-contains-any`), and Gender filtering.
+    *   **Full-Text Search on `memoryHooks` is done client-side** on the local data cache using a dedicated library.
+    *   Search results are combined and ranked **client-side**.
+    *   Navigating from search results to detail screen should fetch the latest data from Firestore to ensure accuracy.
+*   **Authentication:** Email/Password, Google, Apple Sign-in implemented via Firebase Auth. Requires managing user state and linking data via `userId`.
+*   **Security Rules:** **Critical** for data privacy between users. Must be correctly implemented for Firestore and Storage.
+*   **React Native Web:** Adds complexity for UI, authentication flows, and ensuring library compatibility.
+*   **Complexity:** This "moon shot" V1 is complex due to combining multiple auth methods, RN Web, file storage, and client-side FTS on top of core CRUD and offline sync.
 
 ---
 
 ## ❓ Open Questions for [Friend's Name]
 
-*   **V1 Offline Capability:** Is it strictly required that V1 works fully offline (adding, editing, searching)? Or is it acceptable for V1 to require an internet connection for most operations, while offline viewing of previously loaded data is a nice-to-have (Option A above)? Implementing full offline sync (Option B) adds significant complexity and time to V1.
+*   Are there any **specific structured details** (Birthday, Company, Job Title, etc.) that you want to prioritize and include *exactly* in this V1 "moon shot"? If so, what are the specific fields, labels, and input types (e.g., date picker for Birthday)?
 *   Are the Home Screen button/icon concepts (spinning plus/question mark) something you'd like custom assets for, or can we use standard UI elements styled similarly?
-*   Any strong preferences on the "Quick Tags" suggestions provided in the spec?
-
----
-
-## ✨ Future Considerations (V2+)
-
-*   Add Photos (`photoUri` field).
-*   Import/Export data.
-*   Reminders/Follow-ups.
-*   Sync across devices (if not fully implemented in V1).
-*   Grouping/Events.
-*   Advanced Search/Filter options on Results screen.
-*   Settings Screen.
-*   Data Backup/Restore mechanism (Supabase handles backend backups, but client export/import might be needed).
-*   Dedicated input fields for structured details (Birthdays, Company, etc.).
-*   User Authentication/Accounts (if multiple users need separate data).
-
----
+*   Do you have preferred UI patterns for the authentication screens (Login, Signup, Google/Apple buttons, email verification flow)?
