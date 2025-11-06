@@ -43,7 +43,7 @@ const HomeScreen: React.FC = () => {
       <View style={styles.content}>
         <Text style={styles.title}>Name2Face</Text>
         <Text style={styles.subtitle}>
-          Never forget a name again
+          Never forget a name or face again
         </Text>
 
         {user && (
