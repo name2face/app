@@ -1,5 +1,5 @@
-// Add custom jest matchers from @testing-library/react-native
-import '@testing-library/react-native/extend-expect';
+// Jest matchers are now built into @testing-library/react-native v12.4+
+// No need to import extend-expect separately
 
 // Mock Firebase
 jest.mock('./src/services/firebase', () => ({
@@ -36,4 +36,4 @@ jest.mock('./src/services/firebase', () => ({
 }));
 
 // Silence the warning: Animated: `useNativeDriver` is not supported
-jest.mock('react-native/Libraries/Animated/NativeAnimatedHelper');
+// Mock is already handled by jest-expo preset

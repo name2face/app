@@ -2,7 +2,7 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { useAuth } from '../contexts/AuthContext';
-import { Person } from '../types';
+import { SearchResult } from '../types';
 
 // Auth screens
 import LoginScreen from '../screens/LoginScreen';
@@ -23,7 +23,7 @@ export type RootStackParamList = {
   AddDetails: { personId?: string; name?: string };
   EditDetails: { personId: string };
   SearchQuery: undefined;
-  SearchResults: { results: Person[] };
+  SearchResults: { results: SearchResult[] };
   PersonDetail: { personId: string };
 };
 

@@ -30,12 +30,13 @@ describe('TagsInput', () => {
 
   it('should remove selected tag', () => {
     const mockOnTagsChange = jest.fn();
-    const { getByText } = render(
+    const { getAllByText } = render(
       <TagsInput selectedTags={['Work', 'Social']} onTagsChange={mockOnTagsChange} />
     );
 
-    const workTag = getByText('Work');
-    fireEvent.press(workTag);
+    // Get the first Work tag (in the quick tags section)
+    const workTags = getAllByText('Work');
+    fireEvent.press(workTags[0]);
 
     expect(mockOnTagsChange).toHaveBeenCalledWith(['Social']);
   });
