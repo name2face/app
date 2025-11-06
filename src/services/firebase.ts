@@ -107,20 +107,46 @@ export const initializeFirebase = async () => {
     };
 
     // Create a compatible wrapper for native Firestore
+    // Native Firebase uses a different query pattern - queries are built by chaining methods on collections
     firestoreService = {
       collection: (path) => firestore().collection(path),
       doc: (path) => firestore().doc(path),
-      query: (...args) => args[0], // Native doesn't have separate query function
-      where: (field, op, value) => ({ where: [field, op, value] }),
-      orderBy: (field, direction) => ({ orderBy: [field, direction] }),
-      limit: (count) => ({ limit: count }),
+      // For native, query just returns the collection/query passed to it
+      // The actual filtering is done via .where() calls on the collection
+      query: (collection, ...constraints) => {
+        let query = collection;
+        constraints.forEach(constraint => {
+          if (constraint && typeof constraint === 'object') {
+            if (constraint.type === 'where') {
+              query = query.where(constraint.field, constraint.op, constraint.value);
+            } else if (constraint.type === 'orderBy') {
+              query = query.orderBy(constraint.field, constraint.direction);
+            } else if (constraint.type === 'limit') {
+              query = query.limit(constraint.count);
+            }
+          }
+        });
+        return query;
+      },
+      where: (field, op, value) => ({ type: 'where', field, op, value }),
+      orderBy: (field, direction) => ({ type: 'orderBy', field, direction }),
+      limit: (count) => ({ type: 'limit', count }),
       getDocs: async (collectionRef) => {
         const snapshot = await collectionRef.get();
-        return snapshot;
+        return {
+          ...snapshot,
+          empty: snapshot.empty,
+          docs: snapshot.docs,
+        };
       },
       getDoc: async (docRef) => {
         const snapshot = await docRef.get();
-        return snapshot;
+        return {
+          ...snapshot,
+          exists: snapshot.exists,
+          id: snapshot.id,
+          data: () => snapshot.data(),
+        };
       },
       addDoc: async (collectionRef, data) => {
         return await collectionRef.add(data);
@@ -134,7 +160,15 @@ export const initializeFirebase = async () => {
       deleteDoc: async (docRef) => {
         return await docRef.delete();
       },
-      onSnapshot: (query, callback) => query.onSnapshot(callback),
+      onSnapshot: (query, callback) => {
+        return query.onSnapshot((snapshot: any) => {
+          callback({
+            ...snapshot,
+            empty: snapshot.empty,
+            docs: snapshot.docs,
+          });
+        });
+      },
       enablePersistence: async () => {
         console.log('Native: offline persistence enabled by default');
       },
