@@ -37,6 +37,7 @@ const SearchQueryScreen: React.FC = () => {
         gender: gender || undefined,
         tags: tags.length > 0 ? tags : undefined,
         memoryHooks: memoryHooks.trim() || undefined,
+        notes: memoryHooks.trim() || undefined,
       });
 
       navigation.navigate('SearchResults', { results });
@@ -93,6 +94,7 @@ const SearchQueryScreen: React.FC = () => {
             selectedTags={tags}
             onTagsChange={setTags}
             editable={!loading}
+            allowCustomTags={false}
           />
         </View>
 

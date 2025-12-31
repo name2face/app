@@ -15,6 +15,7 @@ import EditDetailsScreen from '../screens/EditDetailsScreen';
 import SearchQueryScreen from '../screens/SearchQueryScreen';
 import SearchResultsScreen from '../screens/SearchResultsScreen';
 import PersonDetailScreen from '../screens/PersonDetailScreen';
+import ContactsListScreen from '../screens/ContactsListScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -25,6 +26,7 @@ export type RootStackParamList = {
   SearchQuery: undefined;
   SearchResults: { results: SearchResult[] };
   PersonDetail: { personId: string };
+  ContactsList: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -83,6 +85,11 @@ const AppNavigator: React.FC = () => {
               name="PersonDetail" 
               component={PersonDetailScreen}
               options={{ title: 'Person Details' }}
+            />
+            <Stack.Screen 
+              name="ContactsList" 
+              component={ContactsListScreen}
+              options={{ title: 'My Contacts' }}
             />
           </>
         )}

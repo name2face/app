@@ -23,7 +23,7 @@ export interface FirebaseFirestoreService {
   setDoc: (docRef: any, data: any, options?: any) => Promise<void>;
   updateDoc: (docRef: any, data: any) => Promise<void>;
   deleteDoc: (docRef: any) => Promise<void>;
-  onSnapshot: (query: any, callback: (snapshot: any) => void) => () => void;
+  onSnapshot: (query: any, callback: (snapshot: any) => void, onError?: (error: any) => void) => () => void;
   enablePersistence: () => Promise<void>;
 }
 
@@ -76,7 +76,7 @@ export const initializeFirebase = async () => {
       setDoc,
       updateDoc,
       deleteDoc,
-      onSnapshot: (q, callback) => onSnapshot(q, callback),
+      onSnapshot: (q, callback, onError) => onSnapshot(q, callback, onError),
       enablePersistence: async () => {
         // Web version is online-only per spec
         console.log('Web version: offline persistence not enabled');
@@ -160,14 +160,14 @@ export const initializeFirebase = async () => {
       deleteDoc: async (docRef) => {
         return await docRef.delete();
       },
-      onSnapshot: (query, callback) => {
+      onSnapshot: (query, callback, onError) => {
         return query.onSnapshot((snapshot: any) => {
           callback({
             ...snapshot,
             empty: snapshot.empty,
             docs: snapshot.docs,
           });
-        });
+        }, onError);
       },
       enablePersistence: async () => {
         console.log('Native: offline persistence enabled by default');

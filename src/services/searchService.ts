@@ -31,7 +31,7 @@ export class SearchService {
     this.index = new FlexSearch.Document({
       document: {
         id: 'id',
-        index: ['name', 'memoryHooks'],
+        index: ['name', 'memoryHooks', 'notes'],
         store: true,
       },
       tokenize: 'forward',
@@ -44,6 +44,7 @@ export class SearchService {
         id: person.id,
         name: person.name,
         memoryHooks: person.memoryHooks || '',
+        notes: person.notes ? person.notes.map(n => n.content).join(' ') : '',
       });
     });
   }
@@ -129,6 +130,31 @@ export class SearchService {
                           hooks.substring(start, end) + 
                           (end < hooks.length ? '...' : '');
             matchContext = matchContext ? `${matchContext}; Memory: ${snippet}` : `Memory: ${snippet}`;
+          }
+        }
+      }
+
+      // Notes search using FlexSearch
+      if (query.notes && query.notes.trim() && this.index) {
+        const searchResults = this.index.search(query.notes, { limit: 100, field: 'notes' });
+        const foundInNotes = searchResults.some((result: any) => 
+          result.result.includes(person.id)
+        );
+        if (foundInNotes) {
+          score += 30;
+          // Get snippet from notes
+          const allNotes = person.notes ? person.notes.map(n => n.content).join(' ') : '';
+          const queryWords = query.notes.toLowerCase().split(/\s+/);
+          const notesLower = allNotes.toLowerCase();
+          const matchWord = queryWords.find(word => notesLower.includes(word));
+          if (matchWord) {
+            const index = notesLower.indexOf(matchWord);
+            const start = Math.max(0, index - 30);
+            const end = Math.min(allNotes.length, index + 70);
+            const snippet = (start > 0 ? '...' : '') + 
+                          allNotes.substring(start, end) + 
+                          (end < allNotes.length ? '...' : '');
+            matchContext = matchContext ? `${matchContext}; Notes: ${snippet}` : `Notes: ${snippet}`;
           }
         }
       }
@@ -244,6 +270,27 @@ export class SearchService {
                           hooks.substring(start, end) + 
                           (end < hooks.length ? '...' : '');
             matchContext = matchContext ? `${matchContext}; Memory: ${snippet}` : `Memory: ${snippet}`;
+          }
+        }
+      }
+
+      // Notes search for web
+      if (query.notes && query.notes.trim()) {
+        const keywords = query.notes.toLowerCase().split(/\s+/);
+        const allNotes = person.notes ? person.notes.map(n => n.content).join(' ') : '';
+        const notesLower = allNotes.toLowerCase();
+        if (keywords.some(keyword => notesLower.includes(keyword))) {
+          matches = true;
+          score += 30;
+          const matchWord = keywords.find(word => notesLower.includes(word));
+          if (matchWord) {
+            const index = notesLower.indexOf(matchWord);
+            const start = Math.max(0, index - 30);
+            const end = Math.min(allNotes.length, index + 70);
+            const snippet = (start > 0 ? '...' : '') + 
+                          allNotes.substring(start, end) + 
+                          (end < allNotes.length ? '...' : '');
+            matchContext = matchContext ? `${matchContext}; Notes: ${snippet}` : `Notes: ${snippet}`;
           }
         }
       }

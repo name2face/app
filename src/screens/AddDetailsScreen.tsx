@@ -15,6 +15,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { personService } from '../services/personService';
+import { Note } from '../types';
 import { Picker } from '@react-native-picker/picker';
 import TagsInput from '../components/TagsInput';
 
@@ -28,7 +29,7 @@ const AddDetailsScreen: React.FC = () => {
   const [name, setName] = useState(route.params?.name || '');
   const [gender, setGender] = useState<'Female' | 'Male' | 'Other' | null>(null);
   const [tags, setTags] = useState<string[]>([]);
-  const [memoryHooks, setMemoryHooks] = useState('');
+  const [initialNote, setInitialNote] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSave = async () => {
@@ -82,11 +83,23 @@ const AddDetailsScreen: React.FC = () => {
   const saveNewPerson = async () => {
     try {
       setLoading(true);
+      
+      const notes: Note[] = [];
+      if (initialNote.trim()) {
+        const now = new Date();
+        notes.push({
+          id: Date.now().toString(),
+          content: initialNote.trim(),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+
       const person = await personService.addPerson({
         name: name.trim(),
         gender,
         tags,
-        memoryHooks,
+        notes,
       });
       navigation.replace('PersonDetail', { personId: person.id });
     } catch (error: any) {
@@ -138,12 +151,12 @@ const AddDetailsScreen: React.FC = () => {
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.label}>Memory Hooks / Notes for Recall</Text>
+          <Text style={styles.label}>Initial Note</Text>
           <TextInput
             style={[styles.input, styles.textArea]}
             placeholder="Enter notes to help you remember this person..."
-            value={memoryHooks}
-            onChangeText={setMemoryHooks}
+            value={initialNote}
+            onChangeText={setInitialNote}
             multiline
             numberOfLines={6}
             editable={!loading}

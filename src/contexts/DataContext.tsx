@@ -70,6 +70,11 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       searchService.updateIndex(fetchedPersons);
     } catch (error) {
       console.error('Error fetching persons:', error);
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack);
+      } else {
+        console.error('Error object:', JSON.stringify(error, null, 2));
+      }
     } finally {
       setLoading(false);
     }

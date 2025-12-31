@@ -46,6 +46,12 @@ const PersonDetailScreen: React.FC = () => {
     }
   };
 
+  const formatDate = (date: Date | any) => {
+    if (!date) return '';
+    const d = date instanceof Date ? date : date.toDate ? date.toDate() : new Date(date);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -91,7 +97,23 @@ const PersonDetailScreen: React.FC = () => {
         </View>
       )}
 
-      {person.memoryHooks && (
+      {person.notes && person.notes.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.label}>Notes</Text>
+          {person.notes.map(note => (
+            <View key={note.id} style={styles.noteItem}>
+              <Text style={styles.noteDate}>
+                {formatDate(note.createdAt)}
+                {note.updatedAt > note.createdAt && ` (Updated: ${formatDate(note.updatedAt)})`}
+              </Text>
+              <Text style={styles.noteContent}>{note.content}</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Fallback for legacy memoryHooks if no notes */}
+      {(!person.notes || person.notes.length === 0) && person.memoryHooks && (
         <View style={styles.section}>
           <Text style={styles.label}>Memory Hooks / Notes</Text>
           <Text style={styles.value}>{person.memoryHooks}</Text>
@@ -99,12 +121,9 @@ const PersonDetailScreen: React.FC = () => {
       )}
 
       <View style={styles.section}>
-        <Text style={styles.label}>Created</Text>
-        <Text style={styles.value}>
-          {person.createdAt instanceof Date
-            ? person.createdAt.toLocaleDateString()
-            : new Date(person.createdAt).toLocaleDateString()}
-        </Text>
+        <Text style={styles.label}>Record Info</Text>
+        <Text style={styles.metaText}>Created: {formatDate(person.createdAt)}</Text>
+        <Text style={styles.metaText}>Last Updated: {formatDate(person.updatedAt)}</Text>
       </View>
     </ScrollView>
   );
@@ -176,6 +195,29 @@ const styles = StyleSheet.create({
   tagText: {
     color: '#007AFF',
     fontSize: 14,
+  },
+  noteItem: {
+    backgroundColor: 'white',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#eee',
+  },
+  noteDate: {
+    fontSize: 12,
+    color: '#888',
+    marginBottom: 4,
+  },
+  noteContent: {
+    fontSize: 15,
+    color: '#333',
+    lineHeight: 22,
+  },
+  metaText: {
+    fontSize: 14,
+    color: '#888',
+    marginBottom: 4,
   },
 });
 

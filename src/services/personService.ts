@@ -30,6 +30,7 @@ export class PersonService {
     const personData = {
       userId,
       name: input.name.trim(),
+      notes: input.notes || [],
       memoryHooks: input.memoryHooks || '',
       tags: input.tags || [],
       gender: input.gender || null,
@@ -66,6 +67,7 @@ export class PersonService {
     };
 
     if (input.name !== undefined) updateData.name = input.name.trim();
+    if (input.notes !== undefined) updateData.notes = input.notes;
     if (input.memoryHooks !== undefined) updateData.memoryHooks = input.memoryHooks;
     if (input.tags !== undefined) updateData.tags = input.tags;
     if (input.gender !== undefined) updateData.gender = input.gender;
@@ -186,8 +188,10 @@ export class PersonService {
    * Subscribe to changes for all persons
    */
   subscribeToPersons(callback: (persons: Person[]) => void): () => void {
+    console.log('subscribeToPersons called');
     const firestore = getFirestoreService();
     const userId = this.getCurrentUserId();
+    console.log('subscribeToPersons userId:', userId);
 
     const personsCollection = firestore.collection(PERSONS_COLLECTION);
     const q = firestore.query(
@@ -195,7 +199,9 @@ export class PersonService {
       firestore.where('userId', '==', userId)
     );
 
+    console.log('subscribeToPersons setting up onSnapshot');
     return firestore.onSnapshot(q, (snapshot: any) => {
+      console.log('subscribeToPersons snapshot received', snapshot.docs.length);
       const persons = snapshot.docs.map((doc: any) => {
         const data = doc.data();
         return {
@@ -206,6 +212,8 @@ export class PersonService {
         } as Person;
       });
       callback(persons);
+    }, (error: any) => {
+      console.error('Error in subscribeToPersons:', error);
     });
   }
 

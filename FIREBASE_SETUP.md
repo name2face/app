@@ -80,7 +80,8 @@ FIREBASE_APP_ID=your_app_id
 
 ## Step 6: Set Up Firestore Security Rules
 
-For production, update your Firestore security rules:
+For production, update your Firestore security rules. 
+**Note:** The previous rules had an error for read operations. Use these corrected rules:
 
 ```javascript
 rules_version = '2';
@@ -88,10 +89,17 @@ service cloud.firestore {
   match /databases/{database}/documents {
     // Users can only access their own persons
     match /persons/{personId} {
-      allow read, write: if request.auth != null && 
-                         request.resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && 
-                    request.resource.data.userId == request.auth.uid;
+      // Allow reading if the document belongs to the user
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Allow creating if the user is authenticated and sets their own userId
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Allow updating if the document belongs to the user AND they aren't changing the userId
+      allow update: if request.auth != null && resource.data.userId == request.auth.uid && request.resource.data.userId == request.auth.uid;
+      
+      // Allow deleting if the document belongs to the user
+      allow delete: if request.auth != null && resource.data.userId == request.auth.uid;
     }
   }
 }

@@ -13,12 +13,14 @@ interface TagsInputProps {
   selectedTags: string[];
   onTagsChange: (tags: string[]) => void;
   editable?: boolean;
+  allowCustomTags?: boolean;
 }
 
 const TagsInput: React.FC<TagsInputProps> = ({
   selectedTags,
   onTagsChange,
   editable = true,
+  allowCustomTags = true,
 }) => {
   const [customTag, setCustomTag] = useState('');
 
@@ -75,7 +77,7 @@ const TagsInput: React.FC<TagsInputProps> = ({
         ))}
       </View>
 
-      {editable && (
+      {editable && allowCustomTags && (
         <>
           <Text style={styles.subtitle}>Custom Tags</Text>
           <View style={styles.customTagInput}>

@@ -74,6 +74,17 @@ const HomeScreen: React.FC = () => {
               Search for someone you've met
             </Text>
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.card, styles.tertiaryCard]}
+            onPress={() => navigation.navigate('ContactsList')}
+          >
+            <Text style={[styles.cardIcon, { color: '#5856D6' }]}>👥</Text>
+            <Text style={styles.cardTitle}>View Contacts</Text>
+            <Text style={styles.cardDescription}>
+              See all your saved contacts
+            </Text>
+          </TouchableOpacity>
         </View>
 
         <TouchableOpacity
@@ -136,6 +147,10 @@ const styles = StyleSheet.create({
   },
   secondaryCard: {
     borderColor: '#34C759',
+    borderWidth: 2,
+  },
+  tertiaryCard: {
+    borderColor: '#5856D6',
     borderWidth: 2,
   },
   cardIcon: {
