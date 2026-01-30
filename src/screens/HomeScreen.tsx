@@ -41,7 +41,7 @@ const HomeScreen: React.FC = () => {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Name2Face</Text>
+        <Text style={styles.title}>Name2Face - Beta</Text>
         <Text style={styles.subtitle}>
           Never forget a name or face again
         </Text>

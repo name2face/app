@@ -1,0 +1,62 @@
+name: Deploy Mobile and Web
+on:
+  push:
+    branches: [main]
+
+jobs:
+  # JOB 1: MOBILE BUILDS (Android & iOS)
+  deploy-mobile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 📦 Install dependencies
+        run: npm install
+
+      - name: 🚀 Build & Submit to Stores
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+        # This kicks off the builds and submits them once finished
+        run: |
+          eas build --platform all --profile production --non-interactive --no-wait
+          eas submit --platform all --profile production --latest --non-interactive
+
+  # JOB 2: WEBSITE DEPLOY (Two Domains)
+  deploy-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🏗 Checkout
+        uses: actions/checkout@v4
+
+      - name: 🏗 Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Install & Build Web
+        run: |
+          npm install
+          npx expo export --platform web
+
+      - name: name2face.app
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=name2face-site-a
+
+      - name: nametoface.app
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=name2face-site-b
