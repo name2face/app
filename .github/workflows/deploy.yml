@@ -4,7 +4,7 @@ on:
     branches: [main]
 
 jobs:
-  # JOB 1: MOBILE BUILDS (Android & iOS)
+  # JOB 1: MOBILE BUILDS
   deploy-mobile:
     runs-on: ubuntu-latest
     steps:
@@ -20,15 +20,17 @@ jobs:
       - name: 📦 Install dependencies
         run: npm install
 
-      - name: 🚀 Build & Submit to Stores
+      - name: 🏗 Setup EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-        # This kicks off the builds and submits them once finished
+
+      - name: 🚀 Build & Submit to Stores
+        # We separate the EAS commands into their own 'run' step
         run: |
-          eas build --platform all --profile production --non-interactive --no-wait
-          eas submit --platform all --profile production --latest --non-interactive
+          npx eas-cli build --platform all --profile production --non-interactive --no-wait
+          npx eas-cli submit --platform all --profile production --latest --non-interactive
 
   # JOB 2: WEBSITE DEPLOY (Two Domains)
   deploy-web:
@@ -47,16 +49,9 @@ jobs:
           npm install
           npx expo export --platform web
 
-      - name: name2face.app
+      - name: Deploy to name2face.app
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=name2face-site-a
-
-      - name: nametoface.app
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=name2face-site-b
+          command: pages deploy dist --project-name=name2face
