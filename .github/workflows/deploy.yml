@@ -32,7 +32,7 @@ jobs:
           npx eas-cli build --platform all --profile production --non-interactive --no-wait
           npx eas-cli submit --platform all --profile production --latest --non-interactive
 
-  # JOB 2: WEBSITE DEPLOY (Two Domains)
+ # JOB 2: WEBSITE DEPLOY (Two Domains)
   deploy-web:
     runs-on: ubuntu-latest
     steps:
@@ -49,20 +49,10 @@ jobs:
           npm install
           npx expo export --platform web
 
-      - name: 🔍 Check build output
-        run: ls -R dist
-
       - name: Deploy to name2face.app
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Use --branch=main to force it to the Production environment
+          # Force production by setting the branch to main
           command: pages deploy dist --project-name=name2face --branch=main
-
-      - name: Deploy to name2face.app
-        uses: cloudflare/wrangler-action@v3
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=name2face
