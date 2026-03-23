@@ -49,6 +49,17 @@ jobs:
           npm install
           npx expo export --platform web
 
+      - name: 🔍 Check build output
+        run: ls -R dist
+
+      - name: Deploy to name2face.app
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Use --branch=main to force it to the Production environment
+          command: pages deploy dist --project-name=name2face --branch=main
+
       - name: Deploy to name2face.app
         uses: cloudflare/wrangler-action@v3
         with:
