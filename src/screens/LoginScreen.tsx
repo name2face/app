@@ -47,7 +47,7 @@ const LoginScreen: React.FC = () => {
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.content}>
-          <Text style={styles.title}>Name2Face</Text>
+          <Text style={styles.title}>Name2Face - Awesome Beta</Text>
           <Text style={styles.subtitle}>
             Remember names and faces with ease
           </Text>
