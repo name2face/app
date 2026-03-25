@@ -11,13 +11,17 @@ import {
   ScrollView,
 } from 'react-native';
 import { useAuth } from '../contexts/AuthContext';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
 const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, enterLoggedOutMode } = useAuth();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
 
   const handleSubmit = async () => {
     if (!email.trim() || !password.trim()) {
@@ -37,6 +41,23 @@ const LoginScreen: React.FC = () => {
       Alert.alert('Error', error.message || 'Authentication failed');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleTryOffline = async (screen: keyof RootStackParamList) => {
+    try {
+      await enterLoggedOutMode();
+      navigation.reset({
+        index: 0,
+        routes: [{ name: 'Home' }],
+      });
+      // Give a moment for navigation to complete, then navigate to the specific screen
+      setTimeout(() => {
+        navigation.navigate(screen);
+      }, 100);
+    } catch (error: any) {
+      console.error('❌ Error entering offline mode:', error);
+      Alert.alert('Error', 'Failed to enter offline mode');
     }
   };
 
@@ -92,6 +113,44 @@ const LoginScreen: React.FC = () => {
                   ? 'Already have an account? Sign In'
                   : "Don't have an account? Sign Up"}
               </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.divider}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>OR</Text>
+            <View style={styles.dividerLine} />
+          </View>
+
+          <Text style={styles.previewTitle}>Try the App First</Text>
+          <Text style={styles.previewSubtitle}>Explore features in offline mode</Text>
+
+          <View style={styles.previewGrid}>
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleTryOffline('AddPerson')}
+            >
+              <Text style={styles.actionButtonIcon}>➕</Text>
+              <Text style={styles.actionButtonText}>Add</Text>
+              <Text style={styles.actionButtonHint}>New Contact</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleTryOffline('SearchQuery')}
+            >
+              <Text style={styles.actionButtonIcon}>🔍</Text>
+              <Text style={styles.actionButtonText}>Search</Text>
+              <Text style={styles.actionButtonHint}>Find Contacts</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.actionButton}
+              onPress={() => handleTryOffline('ContactsList')}
+            >
+              <Text style={styles.actionButtonIcon}>📋</Text>
+              <Text style={styles.actionButtonText}>List</Text>
+              <Text style={styles.actionButtonHint}>All Contacts</Text>
             </TouchableOpacity>
           </View>
 
@@ -166,12 +225,78 @@ const styles = StyleSheet.create({
     color: '#007AFF',
     fontSize: 14,
   },
+  divider: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 30,
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: '#ddd',
+  },
+  dividerText: {
+    marginHorizontal: 15,
+    color: '#999',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  previewTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    color: '#333',
+    marginBottom: 5,
+  },
+  previewSubtitle: {
+    fontSize: 13,
+    textAlign: 'center',
+    color: '#999',
+    marginBottom: 20,
+  },
+  previewGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    maxWidth: 400,
+    alignSelf: 'center',
+    width: '100%',
+    marginBottom: 30,
+  },
+  actionButton: {
+    backgroundColor: 'white',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 5,
+    borderWidth: 1,
+    borderColor: '#ddd',
+  },
+  actionButtonIcon: {
+    fontSize: 32,
+    marginBottom: 8,
+  },
+  actionButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 4,
+  },
+  actionButtonHint: {
+    fontSize: 11,
+    color: '#999',
+  },
   note: {
-    marginTop: 30,
+    marginTop: 20,
     textAlign: 'center',
     color: '#999',
     fontSize: 12,
     fontStyle: 'italic',
+    maxWidth: 400,
+    alignSelf: 'center',
   },
 });
 

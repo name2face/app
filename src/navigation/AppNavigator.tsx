@@ -32,16 +32,23 @@ export type RootStackParamList = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 const AppNavigator: React.FC = () => {
-  const { user, loading } = useAuth();
+  const { user, loading, isLoggedOutMode } = useAuth();
+  
+  console.log('🧭 AppNavigator render - user:', user?.email || 'NULL', 'isLoggedOutMode:', isLoggedOutMode, 'loading:', loading);
 
   if (loading) {
+    console.log('⏳ AppNavigator - Still loading auth state');
     return null; // Or a loading screen
   }
+
+  // Show main app if either user is logged in OR in logged out mode
+  const isAppAccessible = !!user || isLoggedOutMode;
+  console.log('📍 isAppAccessible:', isAppAccessible, '- showing', isAppAccessible ? 'APP' : 'LOGIN');
 
   return (
     <NavigationContainer>
       <Stack.Navigator>
-        {!user ? (
+        {!isAppAccessible ? (
           // Auth stack
           <Stack.Screen 
             name="Login" 

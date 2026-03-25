@@ -13,18 +13,33 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 import { Person } from '../types';
 import { personService } from '../services/personService';
 import { useAuth } from '../contexts/AuthContext';
+import { offlineStorage } from '../utils/offlineStorage';
 
 type ContactsListScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'ContactsList'>;
 
 const ContactsListScreen: React.FC = () => {
   const navigation = useNavigation<ContactsListScreenNavigationProp>();
-  const { user } = useAuth();
+  const { user, isLoggedOutMode } = useAuth();
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    console.log('ContactsListScreen useEffect, user:', user?.uid);
-    if (user) {
+    console.log('ContactsListScreen useEffect - user:', user?.uid, 'isLoggedOutMode:', isLoggedOutMode);
+
+    if (isLoggedOutMode) {
+      // Load from offline storage
+      console.log('Loading contacts from offline storage');
+      try {
+        const offlinePersons = offlineStorage.loadPersons();
+        console.log('Loaded', offlinePersons.length, 'persons from offline storage');
+        setPersons(offlinePersons);
+      } catch (error) {
+        console.error('Error loading offline persons:', error);
+        setPersons([]);
+      }
+      setLoading(false);
+    } else if (user) {
+      // Load from Firebase
       personService.setUserId(user.uid);
       console.log('ContactsListScreen calling subscribeToPersons');
       const unsubscribe = personService.subscribeToPersons((updatedPersons) => {
@@ -34,8 +49,13 @@ const ContactsListScreen: React.FC = () => {
       });
 
       return () => unsubscribe();
+    } else {
+      // Not logged in and not in offline mode - shouldn't happen but handle gracefully
+      console.log('ContactsListScreen: Not logged in and not in offline mode');
+      setPersons([]);
+      setLoading(false);
     }
-  }, [user]);
+  }, [user, isLoggedOutMode]);
 
   const handlePersonPress = (person: Person) => {
     navigation.navigate('PersonDetail', { personId: person.id });

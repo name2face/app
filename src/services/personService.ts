@@ -1,7 +1,13 @@
 import { getFirestoreService, getStorageService } from './firebase';
 import { Person, PersonInput } from '../types';
+import { offlineStorage } from '../utils/offlineStorage';
 
 const PERSONS_COLLECTION = 'persons';
+
+// Generate a simple UUID-like ID for offline mode
+const generateOfflineId = (): string => {
+  return `offline_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+};
 
 export class PersonService {
   private getCurrentUserId(): string {
@@ -14,18 +20,45 @@ export class PersonService {
   }
 
   private userId: string | null = null;
+  private isLoggedOutMode = false;
 
   setUserId(userId: string | null) {
     this.userId = userId;
+  }
+
+  setLoggedOutMode(isLoggedOut: boolean) {
+    this.isLoggedOutMode = isLoggedOut;
   }
 
   /**
    * Add a new person
    */
   async addPerson(input: PersonInput): Promise<Person> {
+    const now = new Date();
+
+    // Logged out mode: save to localStorage
+    if (this.isLoggedOutMode) {
+      const person: Person = {
+        id: generateOfflineId(),
+        userId: null,
+        name: input.name.trim(),
+        notes: input.notes || [],
+        memoryHooks: input.memoryHooks || '',
+        tags: input.tags || [],
+        gender: input.gender || null,
+        photoUrl: input.photoUrl || null,
+        photoStoragePath: input.photoStoragePath || null,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      offlineStorage.savePerson(person);
+      return person;
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const userId = this.getCurrentUserId();
-    const now = new Date();
 
     const personData = {
       userId,
@@ -53,6 +86,22 @@ export class PersonService {
    * Update an existing person
    */
   async updatePerson(id: string, input: Partial<PersonInput>): Promise<void> {
+    const now = new Date();
+
+    // Logged out mode
+    if (this.isLoggedOutMode) {
+      const person = await this.getPersonById(id);
+      const updated: Person = {
+        ...person,
+        ...input,
+        id,
+        updatedAt: now,
+      };
+      offlineStorage.savePerson(updated);
+      return;
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const userId = this.getCurrentUserId();
 
@@ -63,7 +112,7 @@ export class PersonService {
     }
 
     const updateData: any = {
-      updatedAt: new Date(),
+      updatedAt: now,
     };
 
     if (input.name !== undefined) updateData.name = input.name.trim();
@@ -82,6 +131,13 @@ export class PersonService {
    * Delete a person and their photo if exists
    */
   async deletePerson(id: string): Promise<void> {
+    // Logged out mode
+    if (this.isLoggedOutMode) {
+      offlineStorage.deletePerson(id);
+      return;
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const storage = getStorageService();
     const userId = this.getCurrentUserId();
@@ -111,6 +167,17 @@ export class PersonService {
    * Get a person by ID
    */
   async getPersonById(id: string): Promise<Person> {
+    // Logged out mode
+    if (this.isLoggedOutMode) {
+      const persons = offlineStorage.loadPersons();
+      const person = persons.find(p => p.id === id);
+      if (!person) {
+        throw new Error('Person not found');
+      }
+      return person;
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const docRef = firestore.doc(`${PERSONS_COLLECTION}/${id}`);
     const docSnap = await firestore.getDoc(docRef);
@@ -132,6 +199,13 @@ export class PersonService {
    * Check if a person with the given name exists for the current user
    */
   async findPersonByName(name: string): Promise<Person | null> {
+    // Logged out mode
+    if (this.isLoggedOutMode) {
+      const persons = offlineStorage.loadPersons();
+      return persons.find(p => p.name === name.trim()) || null;
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const userId = this.getCurrentUserId();
 
@@ -162,6 +236,12 @@ export class PersonService {
    * Get all persons for the current user
    */
   async getAllPersons(): Promise<Person[]> {
+    // Logged out mode
+    if (this.isLoggedOutMode) {
+      return offlineStorage.loadPersons();
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const userId = this.getCurrentUserId();
 
@@ -189,6 +269,15 @@ export class PersonService {
    */
   subscribeToPersons(callback: (persons: Person[]) => void): () => void {
     console.log('subscribeToPersons called');
+    
+    // Logged out mode: return a no-op unsubscribe
+    if (this.isLoggedOutMode) {
+      const persons = offlineStorage.loadPersons();
+      callback(persons);
+      return () => {}; // No-op unsubscribe
+    }
+
+    // Firebase mode
     const firestore = getFirestoreService();
     const userId = this.getCurrentUserId();
     console.log('subscribeToPersons userId:', userId);

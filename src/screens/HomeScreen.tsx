@@ -10,49 +10,106 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useAuth } from '../contexts/AuthContext';
+import { personService } from '../services/personService';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 const HomeScreen: React.FC = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
-  const { signOut, user } = useAuth();
+  const { signOut, user, isLoggedOutMode, enterLoggedOutMode, exitLoggedOutMode } = useAuth();
 
   const handleSignOut = async () => {
+    console.log('🔴 LOGOUT BUTTON CLICKED - handleSignOut called');
+    console.log('signOut function type:', typeof signOut);
+    
+    const confirmLogout = (typeof window !== 'undefined') && window.confirm('Sign out? You will need to login again.');
+    console.log('User confirmed logout:', confirmLogout);
+    
+    if (!confirmLogout) {
+      console.log('User cancelled logout');
+      return;
+    }
+
+    try {
+      console.log('🔴 >>> Starting logout process');
+      personService.setLoggedOutMode(false);
+      console.log('✅ >>> Logged out mode disabled');
+      
+      console.log('🔴 >>> Calling signOut()');
+      const result = await signOut();
+      console.log('✅ >>> Sign out completed, result:', result);
+      console.log('✅ >>> User should now be null, current user:', user);
+    } catch (error: any) {
+      console.error('❌ >>> Sign out error:', error);
+      console.error('Error details:', error.message, error.code);
+    }
+  };
+
+  const handleEnterLoggedOutMode = () => {
     Alert.alert(
-      'Sign Out',
-      'Are you sure you want to sign out?',
+      'Logged Out Mode',
+      'Enter logged out mode? You can add and view contacts locally, but changes won\'t sync to the cloud.',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Sign Out',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await signOut();
-            } catch (error: any) {
-              Alert.alert('Error', error.message || 'Failed to sign out');
-            }
+          text: 'Enter Logged Out Mode',
+          style: 'default',
+          onPress: () => {
+            personService.setLoggedOutMode(true);
+            enterLoggedOutMode();
           },
         },
       ]
     );
   };
 
+  const handleExitLoggedOutMode = async () => {
+    try {
+      personService.setLoggedOutMode(false);
+      await exitLoggedOutMode();
+    } catch (error: any) {
+      Alert.alert('Error', error.message || 'Failed to exit offline mode');
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.title}>Name2Face - Awesome Beta</Text>
-        <Text style={styles.subtitle}>
-          Never forget a name or face again
-        </Text>
-
+      {/* Header with user info and logout */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerTitle}>Name2Face</Text>
+          {user && (
+            <Text style={styles.headerUserInfo}>
+              {user.email}
+            </Text>
+          )}
+          {isLoggedOutMode && (
+            <Text style={styles.headerOfflineInfo}>
+              📱 Logged Out Mode
+            </Text>
+          )}
+        </View>
         {user && (
-          <Text style={styles.userInfo}>
-            Signed in as: {user.email}
-          </Text>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            onPress={handleSignOut}
+          >
+            <Text style={styles.logoutButtonText}>Sign Out</Text>
+          </TouchableOpacity>
         )}
+      </View>
 
-        <View style={styles.buttonsContainer}>
+      <View style={styles.scrollContainer}>
+        <View style={styles.content}>
+          <Text style={styles.title}>Never forget a name or face again</Text>
+
+          {isLoggedOutMode && (
+            <View style={styles.offlineBanner}>
+              <Text style={styles.offlineBannerText}>In logged out mode - changes saved locally only</Text>
+            </View>
+          )}
+
+          <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={[styles.card, styles.primaryCard]}
             onPress={() => navigation.navigate('AddPerson')}
@@ -87,12 +144,24 @@ const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.signOutButton}
-          onPress={handleSignOut}
-        >
-          <Text style={styles.signOutButtonText}>Sign Out</Text>
-        </TouchableOpacity>
+        <View style={styles.footerButtons}>
+          {isLoggedOutMode ? (
+            <TouchableOpacity
+              style={[styles.button, styles.secondaryButton]}
+              onPress={handleExitLoggedOutMode}
+            >
+              <Text style={styles.buttonText}>Back to Login</Text>
+            </TouchableOpacity>
+          ) : !user ? (
+            <TouchableOpacity
+              style={[styles.button, styles.offlineButton]}
+              onPress={handleEnterLoggedOutMode}
+            >
+              <Text style={styles.buttonText}>Try Logged Out Mode</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
+        </View>
       </View>
     </View>
   );
@@ -103,16 +172,57 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  header: {
+    backgroundColor: 'white',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E0E0E0',
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  headerUserInfo: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+  },
+  headerOfflineInfo: {
+    fontSize: 12,
+    color: '#FF9800',
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  logoutButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: '#FF3B30',
+    borderRadius: 6,
+  },
+  logoutButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  scrollContainer: {
+    flex: 1,
+    overflow: 'scroll',
+  },
   content: {
     flex: 1,
     padding: 20,
     justifyContent: 'center',
   },
   title: {
-    fontSize: 36,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '600',
     textAlign: 'center',
-    marginBottom: 10,
+    marginBottom: 20,
     color: '#333',
   },
   subtitle: {
@@ -170,15 +280,42 @@ const styles = StyleSheet.create({
     color: '#666',
     textAlign: 'center',
   },
-  signOutButton: {
+  offlineBanner: {
+    backgroundColor: '#FFF3CD',
+    borderColor: '#FFC107',
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 20,
+  },
+  offlineBannerText: {
+    fontSize: 14,
+    color: '#856404',
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  footerButtons: {
     marginTop: 40,
+    gap: 12,
+  },
+  button: {
     padding: 15,
     alignItems: 'center',
+    borderRadius: 8,
   },
-  signOutButtonText: {
-    color: '#FF3B30',
+  secondaryButton: {
+    backgroundColor: '#E8E8E8',
+  },
+  offlineButton: {
+    backgroundColor: '#007AFF',
+  },
+  dangerButton: {
+    backgroundColor: '#FF3B30',
+  },
+  buttonText: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: '600',
+    color: 'white',
   },
 });
 

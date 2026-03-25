@@ -12,9 +12,15 @@ export class SearchService {
   private index: any = null;
   private persons: Person[] = [];
   private userId: string | null = null;
+  private isLoggedOutMode = false;
 
   setUserId(userId: string | null) {
     this.userId = userId;
+  }
+
+  setLoggedOutMode(isLoggedOut: boolean) {
+    this.isLoggedOutMode = isLoggedOut;
+    console.log('🔍 SearchService.setLoggedOutMode:', isLoggedOut);
   }
 
   /**
@@ -57,14 +63,135 @@ export class SearchService {
   }
 
   /**
-   * Search persons (client-side for native, Firestore for web)
+   * Search persons (client-side for native, Firestore for web, local for logged out mode)
    */
   async search(query: SearchQuery): Promise<SearchResult[]> {
+    // If in logged out mode, use local search with stored persons
+    if (this.isLoggedOutMode || Platform.OS === 'web' && !this.userId) {
+      console.log('🔍 Using local search (logged out mode or no user)');
+      return this.searchLocal(query);
+    }
+
     if (Platform.OS === 'web') {
       return this.searchWeb(query);
     } else {
       return this.searchNative(query);
     }
+  }
+
+  /**
+   * Local search using in-memory persons array
+   */
+  private searchLocal(query: SearchQuery): SearchResult[] {
+    console.log('🔍 searchLocal called with query:', query);
+    const results: Map<string, SearchResult> = new Map();
+
+    // Start with all persons if no filters
+    let filteredPersons = [...this.persons];
+
+    // Filter by gender if specified
+    if (query.gender) {
+      filteredPersons = filteredPersons.filter(p => p.gender === query.gender);
+    }
+
+    // Filter by tags if specified (OR logic - person has any of the tags)
+    if (query.tags && query.tags.length > 0) {
+      const searchTags = query.tags.map(t => t.toLowerCase());
+      filteredPersons = filteredPersons.filter(p => {
+        const personTags = p.tags.map(t => t.toLowerCase());
+        return searchTags.some(st => personTags.includes(st));
+      });
+    }
+
+    // Now apply name and memory hooks search
+    filteredPersons.forEach(person => {
+      let score = 0;
+      let matchContext = '';
+
+      // Name matching (highest weight)
+      if (query.name && query.name.trim()) {
+        const nameQuery = query.name.toLowerCase();
+        const personName = person.name.toLowerCase();
+        if (personName.includes(nameQuery)) {
+          score += 100;
+          const exactMatch = personName === nameQuery;
+          const startsWithMatch = personName.startsWith(nameQuery);
+          if (exactMatch) score += 50;
+          else if (startsWithMatch) score += 25;
+          matchContext = `Name: ${person.name}`;
+        }
+      }
+
+      // Memory hooks search
+      if (query.memoryHooks && query.memoryHooks.trim()) {
+        const hooksQuery = query.memoryHooks.toLowerCase();
+        const hooks = person.memoryHooks?.toLowerCase() || '';
+        if (hooks.includes(hooksQuery)) {
+          score += 30;
+          const index = hooks.indexOf(hooksQuery);
+          const start = Math.max(0, index - 30);
+          const end = Math.min(hooks.length, index + 70);
+          const snippet = (start > 0 ? '...' : '') + 
+                        (person.memoryHooks || '').substring(start, end) + 
+                        (end < hooks.length ? '...' : '');
+          matchContext = matchContext ? `${matchContext}; Memory: ${snippet}` : `Memory: ${snippet}`;
+        }
+      }
+
+      // Notes search
+      if (query.notes && query.notes.trim()) {
+        const notesQuery = query.notes.toLowerCase();
+        const allNotes = person.notes ? person.notes.map(n => n.content).join(' ') : '';
+        const notesLower = allNotes.toLowerCase();
+        if (notesLower.includes(notesQuery)) {
+          score += 30;
+          const index = notesLower.indexOf(notesQuery);
+          const start = Math.max(0, index - 30);
+          const end = Math.min(allNotes.length, index + 70);
+          const snippet = (start > 0 ? '...' : '') + 
+                        allNotes.substring(start, end) + 
+                        (end < allNotes.length ? '...' : '');
+          matchContext = matchContext ? `${matchContext}; Notes: ${snippet}` : `Notes: ${snippet}`;
+        }
+      }
+
+      // Tags match (already filtered, add to score)
+      if (query.tags && query.tags.length > 0) {
+        score += 20;
+        const matchedTags = person.tags.filter(t => 
+          query.tags!.some(qt => qt.toLowerCase() === t.toLowerCase())
+        );
+        if (matchedTags.length > 0 && !matchContext) {
+          matchContext = `Tags: ${matchedTags.join(', ')}`;
+        }
+      }
+
+      // Gender match
+      if (query.gender) {
+        score += 10;
+      }
+
+      // Only include if there's a match
+      if (score > 0) {
+        results.set(person.id, {
+          ...person,
+          relevanceScore: score,
+          matchContext: matchContext || `Name: ${person.name}`,
+        });
+      }
+    });
+
+    // If no specific query criteria, return all filtered persons
+    if (!query.name && !query.memoryHooks && (!query.tags || query.tags.length === 0) && !query.gender) {
+      return filteredPersons.map(person => ({
+        ...person,
+        relevanceScore: 1,
+        matchContext: `Name: ${person.name}`,
+      })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    }
+
+    // Sort by relevance score
+    return Array.from(results.values()).sort((a, b) => b.relevanceScore - a.relevanceScore);
   }
 
   /**

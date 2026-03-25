@@ -4,6 +4,7 @@ import { Person } from '../types';
 import { personService } from '../services/personService';
 import { searchService } from '../services/searchService';
 import { useAuth } from './AuthContext';
+import { offlineStorage } from '../utils/offlineStorage';
 
 interface DataContextType {
   persons: Person[];
@@ -28,9 +29,18 @@ interface DataProviderProps {
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [persons, setPersons] = useState<Person[]>([]);
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, isLoggedOutMode } = useAuth();
 
   useEffect(() => {
+    if (isLoggedOutMode) {
+      // Load from offline storage
+      const offlinePersons = offlineStorage.loadPersons();
+      setPersons(offlinePersons);
+      searchService.updateIndex(offlinePersons);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setPersons([]);
       setLoading(false);
@@ -52,9 +62,17 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       // On web, just fetch initially
       refreshPersons();
     }
-  }, [user]);
+  }, [user, isLoggedOutMode]);
 
   const refreshPersons = async () => {
+    if (isLoggedOutMode) {
+      const offlinePersons = offlineStorage.loadPersons();
+      setPersons(offlinePersons);
+      searchService.updateIndex(offlinePersons);
+      setLoading(false);
+      return;
+    }
+
     if (!user) {
       setPersons([]);
       setLoading(false);

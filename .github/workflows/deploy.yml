@@ -26,11 +26,11 @@ jobs:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
 
-      - name: 🚀 Build & Submit to Stores
+      # - name: 🚀 Build & Submit to Stores
         # We separate the EAS commands into their own 'run' step
-        run: |
-          npx eas-cli build --platform all --profile production --non-interactive --no-wait
-          npx eas-cli submit --platform all --profile production --latest --non-interactive
+        # run: |
+        # npx eas-cli build --platform all --profile production --non-interactive --no-wait
+        # npx eas-cli submit --platform all --profile production --latest --non-interactive
 
  # JOB 2: WEBSITE DEPLOY (Two Domains)
   deploy-web:
