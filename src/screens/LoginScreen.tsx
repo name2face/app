@@ -137,9 +137,9 @@ const LoginScreen: React.FC = () => {
           <View style={styles.previewGrid}>
             <TouchableOpacity
               style={styles.actionButton}
-              onPress={() => handleTryOffline('AddPerson')}
+              onPress={() => handleTryOffline('AddDetails')}
             >
-              <Text style={styles.actionButtonIcon}>➕</Text>
+              <Text style={styles.actionButtonIcon}>👤➕</Text>
               <Text style={styles.actionButtonText}>Add</Text>
               <Text style={styles.actionButtonHint}>New Contact</Text>
             </TouchableOpacity>
@@ -148,7 +148,7 @@ const LoginScreen: React.FC = () => {
               style={styles.actionButton}
               onPress={() => handleTryOffline('SearchQuery')}
             >
-              <Text style={styles.actionButtonIcon}>🔍</Text>
+              <Text style={styles.actionButtonIcon}>👤❓</Text>
               <Text style={styles.actionButtonText}>Search</Text>
               <Text style={styles.actionButtonHint}>Find Contacts</Text>
             </TouchableOpacity>
@@ -157,7 +157,7 @@ const LoginScreen: React.FC = () => {
               style={styles.actionButton}
               onPress={() => handleTryOffline('ContactsList')}
             >
-              <Text style={styles.actionButtonIcon}>📋</Text>
+              <Text style={styles.actionButtonIcon}>👥</Text>
               <Text style={styles.actionButtonText}>List</Text>
               <Text style={styles.actionButtonHint}>All Contacts</Text>
             </TouchableOpacity>

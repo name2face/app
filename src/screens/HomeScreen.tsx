@@ -116,7 +116,7 @@ const HomeScreen: React.FC = () => {
             style={[styles.card, styles.primaryCard]}
             onPress={() => navigation.navigate('AddDetails', { name: '' })}
           >
-            <Text style={styles.cardIcon}>+</Text>
+            <Text style={styles.cardIcon}>👤➕</Text>
             <Text style={styles.cardTitle}>New Name to Face</Text>
             <Text style={styles.cardDescription}>
               Add a new person to remember
@@ -127,7 +127,7 @@ const HomeScreen: React.FC = () => {
             style={[styles.card, styles.secondaryCard]}
             onPress={() => navigation.navigate('SearchQuery')}
           >
-            <Text style={styles.cardIcon}>?</Text>
+            <Text style={styles.cardIcon}>👤❓</Text>
             <Text style={styles.cardTitle}>Recall Name to Face</Text>
             <Text style={styles.cardDescription}>
               Search for someone you've met
@@ -138,7 +138,7 @@ const HomeScreen: React.FC = () => {
             style={[styles.card, styles.tertiaryCard]}
             onPress={() => navigation.navigate('ContactsList')}
           >
-            <Text style={[styles.cardIcon, { color: '#5856D6' }]}>👥</Text>
+            <Text style={styles.cardIcon}>👥</Text>
             <Text style={styles.cardTitle}>View Contacts</Text>
             <Text style={styles.cardDescription}>
               See all your saved contacts
