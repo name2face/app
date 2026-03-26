@@ -187,9 +187,9 @@ const AddDetailsScreen: React.FC = () => {
         </View>
 
         <TouchableOpacity
-          style={[styles.button, styles.saveButton]}
+          style={[styles.button, styles.saveButton, !name.trim() && styles.disabledButton]}
           onPress={handleSave}
-          disabled={loading}
+          disabled={loading || !name.trim()}
         >
           {loading ? (
             <ActivityIndicator color="white" />
@@ -251,6 +251,10 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#007AFF',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
   },
   buttonText: {
     color: 'white',

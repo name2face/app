@@ -111,16 +111,10 @@ const HomeScreen: React.FC = () => {
         <View style={styles.content}>
           <Text style={styles.title}>Never forget a name or face again</Text>
 
-          {isLoggedOutMode && (
-            <View style={styles.offlineBanner}>
-              <Text style={styles.offlineBannerText}>In logged out mode - changes saved locally only</Text>
-            </View>
-          )}
-
           <View style={styles.buttonsContainer}>
           <TouchableOpacity
             style={[styles.card, styles.primaryCard]}
-            onPress={() => navigation.navigate('AddPerson')}
+            onPress={() => navigation.navigate('AddDetails', { name: '' })}
           >
             <Text style={styles.cardIcon}>+</Text>
             <Text style={styles.cardTitle}>New Name to Face</Text>
@@ -290,20 +284,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  offlineBanner: {
-    backgroundColor: '#FFF3CD',
-    borderColor: '#FFC107',
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    marginBottom: 20,
-  },
-  offlineBannerText: {
-    fontSize: 14,
-    color: '#856404',
-    textAlign: 'center',
-    fontWeight: '500',
   },
   footerButtons: {
     marginTop: 40,

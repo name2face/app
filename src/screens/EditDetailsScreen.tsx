@@ -327,9 +327,9 @@ const EditDetailsScreen: React.FC = () => {
         )}
 
         <TouchableOpacity
-          style={[styles.button, styles.saveButton]}
+          style={[styles.button, styles.saveButton, !name.trim() && styles.disabledButton]}
           onPress={handleSave}
-          disabled={saving}
+          disabled={saving || !name.trim()}
         >
           {saving ? (
             <ActivityIndicator color="white" />
@@ -415,6 +415,10 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     backgroundColor: '#007AFF',
+  },
+  disabledButton: {
+    backgroundColor: '#ccc',
+    opacity: 0.6,
   },
   deleteButton: {
     backgroundColor: 'white',

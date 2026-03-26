@@ -49,7 +49,11 @@ const AppNavigator: React.FC = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator>
+      <Stack.Navigator
+        screenOptions={{
+          headerTintColor: '#333',
+        }}
+      >
         {!isAppAccessible ? (
           // Auth stack
           <>
