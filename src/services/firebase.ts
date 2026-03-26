@@ -8,6 +8,7 @@ export interface FirebaseAuthService {
   signOut: () => Promise<void>;
   getCurrentUser: () => any;
   onAuthStateChanged: (callback: (user: any) => void) => () => void;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
 }
 
 export interface FirebaseFirestoreService {
@@ -43,7 +44,7 @@ export const initializeFirebase = async () => {
   if (isWeb) {
     // Web Firebase initialization
     const { initializeApp } = await import('firebase/app');
-    const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged } = await import('firebase/auth');
+    const { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, sendPasswordResetEmail } = await import('firebase/auth');
     const { getFirestore, collection, doc, query, where, orderBy, limit, getDocs, getDoc, addDoc, setDoc, updateDoc, deleteDoc, onSnapshot, enableIndexedDbPersistence } = await import('firebase/firestore');
     const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = await import('firebase/storage');
 
@@ -61,6 +62,7 @@ export const initializeFirebase = async () => {
       signOut: () => signOut(auth),
       getCurrentUser: () => auth.currentUser,
       onAuthStateChanged: (callback) => onAuthStateChanged(auth, callback),
+      sendPasswordResetEmail: (email) => sendPasswordResetEmail(auth, email),
     };
 
     firestoreService = {
@@ -104,6 +106,7 @@ export const initializeFirebase = async () => {
       signOut: () => auth().signOut(),
       getCurrentUser: () => auth().currentUser,
       onAuthStateChanged: (callback) => auth().onAuthStateChanged(callback),
+      sendPasswordResetEmail: (email) => auth().sendPasswordResetEmail(email),
     };
 
     // Create a compatible wrapper for native Firestore

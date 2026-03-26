@@ -53,7 +53,7 @@ const LoginScreen: React.FC = () => {
       });
       // Give a moment for navigation to complete, then navigate to the specific screen
       setTimeout(() => {
-        navigation.navigate(screen);
+        navigation.navigate(screen as any);
       }, 100);
     } catch (error: any) {
       console.error('❌ Error entering offline mode:', error);
@@ -102,6 +102,15 @@ const LoginScreen: React.FC = () => {
                 {loading ? 'Please wait...' : isSignUp ? 'Sign Up' : 'Sign In'}
               </Text>
             </TouchableOpacity>
+
+            {!isSignUp && (
+              <TouchableOpacity
+                onPress={() => navigation.navigate('ForgotPassword')}
+                disabled={loading}
+              >
+                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.switchButton}
@@ -297,6 +306,12 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     maxWidth: 400,
     alignSelf: 'center',
+  },
+  forgotPasswordText: {
+    color: '#007AFF',
+    textAlign: 'center',
+    fontSize: 14,
+    marginBottom: 15,
   },
 });
 

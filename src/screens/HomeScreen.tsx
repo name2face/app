@@ -97,6 +97,14 @@ const HomeScreen: React.FC = () => {
             <Text style={styles.logoutButtonText}>Sign Out</Text>
           </TouchableOpacity>
         )}
+        {isLoggedOutMode && !user && (
+          <TouchableOpacity
+            style={[styles.logoutButton, styles.exitOfflineButton]}
+            onPress={handleExitLoggedOutMode}
+          >
+            <Text style={styles.logoutButtonText}>Exit</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.scrollContainer}>
@@ -203,6 +211,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     backgroundColor: '#FF3B30',
     borderRadius: 6,
+  },
+  exitOfflineButton: {
+    backgroundColor: '#5856D6',
   },
   logoutButtonText: {
     color: 'white',

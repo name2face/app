@@ -8,7 +8,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { Person } from '../types';
 import { personService } from '../services/personService';
@@ -56,6 +56,22 @@ const ContactsListScreen: React.FC = () => {
       setLoading(false);
     }
   }, [user, isLoggedOutMode]);
+
+  // Refresh data when screen comes into focus (e.g., after editing a person)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('ContactsListScreen focused - refreshing data');
+      if (isLoggedOutMode) {
+        try {
+          const offlinePersons = offlineStorage.loadPersons();
+          console.log('Refreshed', offlinePersons.length, 'persons from offline storage');
+          setPersons(offlinePersons);
+        } catch (error) {
+          console.error('Error loading offline persons:', error);
+        }
+      }
+    }, [isLoggedOutMode])
+  );
 
   const handlePersonPress = (person: Person) => {
     navigation.navigate('PersonDetail', { personId: person.id });

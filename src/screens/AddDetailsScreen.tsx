@@ -16,7 +16,6 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { personService } from '../services/personService';
 import { Note } from '../types';
-import { Picker } from '@react-native-picker/picker';
 import TagsInput from '../components/TagsInput';
 
 type AddDetailsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'AddDetails'>;
@@ -27,7 +26,7 @@ const AddDetailsScreen: React.FC = () => {
   const route = useRoute<AddDetailsScreenRouteProp>();
 
   const [name, setName] = useState(route.params?.name || '');
-  const [gender, setGender] = useState<'Female' | 'Male' | 'Other' | null>(null);
+  const [gender, setGender] = useState<'Female' | 'Male' | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [initialNote, setInitialNote] = useState('');
   const [loading, setLoading] = useState(false);
@@ -127,18 +126,41 @@ const AddDetailsScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.label}>Gender (Optional)</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={gender}
-              onValueChange={(itemValue) => setGender(itemValue)}
-              enabled={!loading}
-              style={styles.picker}
+          <View style={styles.genderButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.genderButton,
+                gender === 'Female' && styles.genderButtonSelected,
+              ]}
+              onPress={() => setGender(gender === 'Female' ? null : 'Female')}
+              disabled={loading}
             >
-              <Picker.Item label="Prefer not to specify" value={null} />
-              <Picker.Item label="Female" value="Female" />
-              <Picker.Item label="Male" value="Male" />
-              <Picker.Item label="Other" value="Other" />
-            </Picker>
+              <Text
+                style={[
+                  styles.genderButtonText,
+                  gender === 'Female' && styles.genderButtonTextSelected,
+                ]}
+              >
+                👩 Female
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.genderButton,
+                gender === 'Male' && styles.genderButtonSelected,
+              ]}
+              onPress={() => setGender(gender === 'Male' ? null : 'Male')}
+              disabled={loading}
+            >
+              <Text
+                style={[
+                  styles.genderButtonText,
+                  gender === 'Male' && styles.genderButtonTextSelected,
+                ]}
+              >
+                👨 Male
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -234,6 +256,31 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 16,
     fontWeight: '600',
+  },
+  genderButtonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  genderButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+  },
+  genderButtonSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  genderButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  genderButtonTextSelected: {
+    color: 'white',
   },
 });
 

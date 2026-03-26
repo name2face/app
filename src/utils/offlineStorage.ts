@@ -88,7 +88,7 @@ export const offlineStorage = {
     if (Platform.OS !== 'web') return;
     try {
       localStorage.removeItem(OFFLINE_PERSONS_KEY);
-      localStorage.removeItem(OFFLINE_MODE_KEY);
+      localStorage.removeItem(LOGGED_OUT_MODE_KEY);
     } catch (error) {
       console.error('Error clearing offline storage:', error);
     }

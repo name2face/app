@@ -15,7 +15,6 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { searchService } from '../services/searchService';
-import { Picker } from '@react-native-picker/picker';
 import TagsInput from '../components/TagsInput';
 
 type SearchQueryScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'SearchQuery'>;
@@ -24,24 +23,40 @@ const SearchQueryScreen: React.FC = () => {
   const navigation = useNavigation<SearchQueryScreenNavigationProp>();
 
   const [name, setName] = useState('');
-  const [gender, setGender] = useState<'Female' | 'Male' | 'Other' | null>(null);
+  const [gender, setGender] = useState<'Female' | 'Male' | null>(null);
   const [tags, setTags] = useState<string[]>([]);
   const [memoryHooks, setMemoryHooks] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const toggleGender = (selectedGender: 'Female' | 'Male') => {
+    // If clicking the same gender, deselect it (toggle to null)
+    // If clicking a different gender, select it
+    // Can only have one gender selected at a time
+    setGender(prev => prev === selectedGender ? null : selectedGender);
+  };
+
   const handleSearch = async () => {
     setLoading(true);
     try {
-      const results = await searchService.search({
+      const query = {
         name: name.trim() || undefined,
-        gender: gender || undefined,
+        genders: gender ? [gender] : undefined,
         tags: tags.length > 0 ? tags : undefined,
         memoryHooks: memoryHooks.trim() || undefined,
         notes: memoryHooks.trim() || undefined,
-      });
-
+      };
+      console.log('🔎 SearchQueryScreen sending query:', JSON.stringify(query, null, 2));
+      console.log('   - name:', query.name);
+      console.log('   - genders:', query.genders);
+      console.log('   - tags:', query.tags);
+      console.log('   - memoryHooks:', query.memoryHooks);
+      
+      const results = await searchService.search(query);
+      console.log('🔎 Got results:', results.length);
+      
       navigation.navigate('SearchResults', { results });
     } catch (error: any) {
+      console.error('🔎 Search error:', error);
       Alert.alert('Error', error.message || 'Search failed');
     } finally {
       setLoading(false);
@@ -56,11 +71,6 @@ const SearchQueryScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
-        <Text style={styles.description}>
-          Search for someone by their name, tags, gender, or notes you've made about them.
-          All fields use OR logic - results will match any of the criteria you provide.
-        </Text>
-
         <View style={styles.section}>
           <Text style={styles.label}>Name</Text>
           <TextInput
@@ -74,22 +84,46 @@ const SearchQueryScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.label}>Gender</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={gender}
-              onValueChange={(itemValue) => setGender(itemValue)}
-              enabled={!loading}
-              style={styles.picker}
+          <View style={styles.genderButtonContainer}>
+            <TouchableOpacity
+              style={[
+                styles.genderButton,
+                gender === 'Female' && styles.genderButtonSelected,
+              ]}
+              onPress={() => toggleGender('Female')}
+              disabled={loading}
             >
-              <Picker.Item label="Any" value={null} />
-              <Picker.Item label="Female" value="Female" />
-              <Picker.Item label="Male" value="Male" />
-              <Picker.Item label="Other" value="Other" />
-            </Picker>
+              <Text
+                style={[
+                  styles.genderButtonText,
+                  gender === 'Female' && styles.genderButtonTextSelected,
+                ]}
+              >
+                👩 Female
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.genderButton,
+                gender === 'Male' && styles.genderButtonSelected,
+              ]}
+              onPress={() => toggleGender('Male')}
+              disabled={loading}
+            >
+              <Text
+                style={[
+                  styles.genderButtonText,
+                  gender === 'Male' && styles.genderButtonTextSelected,
+                ]}
+              >
+                👨 Male
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
 
         <View style={styles.section}>
+          <Text style={styles.label}>Quick Tags</Text>
           <TagsInput
             selectedTags={tags}
             onTagsChange={setTags}
@@ -214,6 +248,31 @@ const styles = StyleSheet.create({
     color: '#999',
     fontSize: 14,
     marginTop: 10,
+  },
+  genderButtonContainer: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  genderButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    borderWidth: 2,
+    borderColor: '#ddd',
+    alignItems: 'center',
+  },
+  genderButtonSelected: {
+    backgroundColor: '#007AFF',
+    borderColor: '#007AFF',
+  },
+  genderButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  genderButtonTextSelected: {
+    color: 'white',
   },
 });
 

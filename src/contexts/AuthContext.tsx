@@ -18,6 +18,7 @@ interface AuthContextType {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  sendPasswordResetEmail: (email: string) => Promise<void>;
   enterLoggedOutMode: () => void;
   exitLoggedOutMode: () => void;
 }
@@ -174,6 +175,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     return unsubscribe;
   };
 
+  const sendPasswordResetEmail = async (email: string) => {
+    const authService = getAuthService();
+    try {
+      console.log('🔐 Sending password reset email to:', email);
+      await authService.sendPasswordResetEmail(email);
+      console.log('✅ Password reset email sent successfully');
+    } catch (error: any) {
+      console.error('❌ Password reset error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     user,
     loading,
@@ -182,6 +197,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     signIn,
     signUp,
     signOut,
+    sendPasswordResetEmail,
     enterLoggedOutMode,
     exitLoggedOutMode,
   };

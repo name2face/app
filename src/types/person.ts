@@ -15,7 +15,7 @@ export interface Person {
   name: string;
   notes: Note[];
   tags: string[];
-  gender?: 'Female' | 'Male' | 'Other' | null;
+  gender?: 'Female' | 'Male' | null;
   createdAt: Date;
   updatedAt: Date;
   photoUrl?: string;
@@ -28,7 +28,7 @@ export interface PersonInput {
   name: string;
   notes?: Note[];
   tags?: string[];
-  gender?: 'Female' | 'Male' | 'Other' | null;
+  gender?: 'Female' | 'Male' | null;
   photoUrl?: string;
   photoStoragePath?: string;
   // Legacy field support
@@ -39,7 +39,7 @@ export interface SearchQuery {
   name?: string;
   notes?: string; // Search text for notes
   tags?: string[];
-  gender?: 'Female' | 'Male' | 'Other' | null;
+  genders?: ('Female' | 'Male')[]; // Array of genders - OR logic
   // Legacy field support
   memoryHooks?: string;
 }

@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
+import { RouteProp, useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { personService } from '../services/personService';
 import { Person } from '../types';
@@ -26,6 +26,14 @@ const PersonDetailScreen: React.FC = () => {
   useEffect(() => {
     loadPerson();
   }, [route.params.personId]);
+
+  // Refresh data when screen comes into focus (e.g., after editing)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('PersonDetailScreen focused - refreshing person data');
+      loadPerson();
+    }, [route.params.personId])
+  );
 
   const loadPerson = async () => {
     try {

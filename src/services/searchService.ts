@@ -83,36 +83,58 @@ export class SearchService {
    * Local search using in-memory persons array
    */
   private searchLocal(query: SearchQuery): SearchResult[] {
-    console.log('🔍 searchLocal called with query:', query);
+    console.log('🔍 searchLocal called with query:', JSON.stringify(query));
+    console.log('   Available persons:', this.persons.length);
+    console.log('   Available genders:', Array.from(new Set(this.persons.map(p => p.gender))));
+    console.log('   Available tags:', Array.from(new Set(this.persons.flatMap(p => p.tags))));
+    
     const results: Map<string, SearchResult> = new Map();
 
-    // Start with all persons if no filters
+    // Filter by gender if specified (hard filter - must match)
     let filteredPersons = [...this.persons];
-
-    // Filter by gender if specified
-    if (query.gender) {
-      filteredPersons = filteredPersons.filter(p => p.gender === query.gender);
+    if (query.genders && query.genders.length > 0) {
+      console.log('   🔍 Gender filter requested:', query.genders);
+      console.log('   📊 Persons before gender filter:', filteredPersons.length);
+      filteredPersons.forEach(p => {
+        const isMatch = query.genders!.includes(p.gender!);
+        console.log(`     ${isMatch ? '✓' : '✗'} "${p.name}" gender="${p.gender}" vs query=[${query.genders!.join(',')}]`);
+      });
+      filteredPersons = filteredPersons.filter(p => query.genders!.includes(p.gender!));
+      console.log('   📊 Persons after gender filter:', filteredPersons.length);
     }
 
     // Filter by tags if specified (OR logic - person has any of the tags)
     if (query.tags && query.tags.length > 0) {
+      console.log('   🔍 Tags filter requested:', query.tags);
+      console.log('   📊 Persons before tag filter:', filteredPersons.length);
+      console.log('   📋 All available tags in database:', 
+        Array.from(new Set(this.persons.flatMap(p => p.tags))).join(', '));
       const searchTags = query.tags.map(t => t.toLowerCase());
+      console.log('   Lowercased search tags:', searchTags);
+      filteredPersons.forEach(p => {
+        const personTags = p.tags.map(t => t.toLowerCase());
+        const hasMatch = searchTags.some(st => personTags.includes(st));
+        console.log(`     ${hasMatch ? '✓' : '✗'} "${p.name}" tags [${p.tags.join(',')}] vs query [${query.tags.join(',')}]`);
+      });
       filteredPersons = filteredPersons.filter(p => {
         const personTags = p.tags.map(t => t.toLowerCase());
         return searchTags.some(st => personTags.includes(st));
       });
+      console.log('   After tag filter:', filteredPersons.length);
     }
 
-    // Now apply name and memory hooks search
+    // Now apply name and memory hooks search with scoring
     filteredPersons.forEach(person => {
       let score = 0;
       let matchContext = '';
+      let hasMatch = false;
 
       // Name matching (highest weight)
       if (query.name && query.name.trim()) {
         const nameQuery = query.name.toLowerCase();
         const personName = person.name.toLowerCase();
         if (personName.includes(nameQuery)) {
+          hasMatch = true;
           score += 100;
           const exactMatch = personName === nameQuery;
           const startsWithMatch = personName.startsWith(nameQuery);
@@ -124,10 +146,13 @@ export class SearchService {
 
       // Memory hooks search
       if (query.memoryHooks && query.memoryHooks.trim()) {
+        console.log(`   Searching memory hooks for "${query.memoryHooks}" in "${person.name}"`);
         const hooksQuery = query.memoryHooks.toLowerCase();
         const hooks = person.memoryHooks?.toLowerCase() || '';
         if (hooks.includes(hooksQuery)) {
+          hasMatch = true;
           score += 30;
+          console.log(`     ✓ MATCH in memory hooks`);
           const index = hooks.indexOf(hooksQuery);
           const start = Math.max(0, index - 30);
           const end = Math.min(hooks.length, index + 70);
@@ -135,16 +160,21 @@ export class SearchService {
                         (person.memoryHooks || '').substring(start, end) + 
                         (end < hooks.length ? '...' : '');
           matchContext = matchContext ? `${matchContext}; Memory: ${snippet}` : `Memory: ${snippet}`;
+        } else {
+          console.log(`     ✗ NO MATCH`);
         }
       }
 
       // Notes search
       if (query.notes && query.notes.trim()) {
+        console.log(`   Searching notes for "${query.notes}" in "${person.name}"`);
         const notesQuery = query.notes.toLowerCase();
         const allNotes = person.notes ? person.notes.map(n => n.content).join(' ') : '';
         const notesLower = allNotes.toLowerCase();
         if (notesLower.includes(notesQuery)) {
+          hasMatch = true;
           score += 30;
+          console.log(`     ✓ MATCH in notes`);
           const index = notesLower.indexOf(notesQuery);
           const start = Math.max(0, index - 30);
           const end = Math.min(allNotes.length, index + 70);
@@ -152,10 +182,19 @@ export class SearchService {
                         allNotes.substring(start, end) + 
                         (end < allNotes.length ? '...' : '');
           matchContext = matchContext ? `${matchContext}; Notes: ${snippet}` : `Notes: ${snippet}`;
+        } else {
+          console.log(`     ✗ NO MATCH (notes available: ${allNotes.length > 0})`);
         }
       }
 
-      // Tags match (already filtered, add to score)
+      // If text search criteria provided but no match, skip this person
+      if ((query.name || query.memoryHooks || query.notes) && !hasMatch) {
+        console.log(`   Skipping "${person.name}" - text search provided but no match`);
+        return;
+      }
+
+      // Person matched filters (tags and/or gender), with optional text search match
+      // Tags match
       if (query.tags && query.tags.length > 0) {
         score += 20;
         const matchedTags = person.tags.filter(t => 
@@ -166,13 +205,14 @@ export class SearchService {
         }
       }
 
-      // Gender match
-      if (query.gender) {
+      // Gender match adds to score
+      if (query.genders && query.genders.length > 0) {
         score += 10;
       }
 
-      // Only include if there's a match
-      if (score > 0) {
+      // Add result if has text match OR only filters provided
+      if (hasMatch || (!query.name && !query.memoryHooks && !query.notes)) {
+        console.log(`   ✓ Adding "${person.name}" to results (score: ${score})`);
         results.set(person.id, {
           ...person,
           relevanceScore: score,
@@ -181,17 +221,9 @@ export class SearchService {
       }
     });
 
-    // If no specific query criteria, return all filtered persons
-    if (!query.name && !query.memoryHooks && (!query.tags || query.tags.length === 0) && !query.gender) {
-      return filteredPersons.map(person => ({
-        ...person,
-        relevanceScore: 1,
-        matchContext: `Name: ${person.name}`,
-      })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }
-
-    // Sort by relevance score
-    return Array.from(results.values()).sort((a, b) => b.relevanceScore - a.relevanceScore);
+    const finalResults = Array.from(results.values()).sort((a, b) => b.relevanceScore - a.relevanceScore);
+    console.log(`🔍 searchLocal returning ${finalResults.length} results`);
+    return finalResults;
   }
 
   /**
@@ -200,33 +232,55 @@ export class SearchService {
   private searchNative(query: SearchQuery): SearchResult[] {
     const results: Map<string, SearchResult> = new Map();
 
-    // Start with all persons if no filters
-    let filteredPersons = [...this.persons];
+    console.log('🔍 searchNative called with query:', JSON.stringify(query));
+    console.log('   Persons in memory:', this.persons.length);
+    console.log('   Available genders:', Array.from(new Set(this.persons.map(p => p.gender))));
 
-    // Filter by gender if specified
-    if (query.gender) {
-      filteredPersons = filteredPersons.filter(p => p.gender === query.gender);
+    // Filter by gender (hard filter)
+    let filteredPersons = [...this.persons];
+    if (query.genders && query.genders.length > 0) {
+      console.log('   🔍 Gender filter requested:', query.genders);
+      console.log('   📊 Persons before gender filter:', filteredPersons.length);
+      filteredPersons.forEach(p => {
+        const isMatch = query.genders!.includes(p.gender!);
+        console.log(`     ${isMatch ? '✓' : '✗'} "${p.name}" gender="${p.gender}" vs query=[${query.genders!.join(',')}]`);
+      });
+      filteredPersons = filteredPersons.filter(p => query.genders!.includes(p.gender!));
+      console.log('   📊 Persons after gender filter:', filteredPersons.length);
     }
 
-    // Filter by tags if specified (OR logic - person has any of the tags)
+    // Filter by tags (hard filter - OR logic)
     if (query.tags && query.tags.length > 0) {
+      console.log('   🔍 Tags filter requested:', query.tags);
+      console.log('   📊 Persons before tag filter:', filteredPersons.length);
+      console.log('   📋 All available tags in database:', 
+        Array.from(new Set(this.persons.flatMap(p => p.tags))).join(', '));
       const searchTags = query.tags.map(t => t.toLowerCase());
+      console.log('   Lowercased search tags:', searchTags);
+      filteredPersons.forEach(p => {
+        const personTags = p.tags.map(t => t.toLowerCase());
+        const hasMatch = searchTags.some(st => personTags.includes(st));
+        console.log(`     ${hasMatch ? '✓' : '✗'} "${p.name}" tags [${p.tags.join(',')}] vs query [${query.tags.join(',')}]`);
+      });
       filteredPersons = filteredPersons.filter(p => {
         const personTags = p.tags.map(t => t.toLowerCase());
         return searchTags.some(st => personTags.includes(st));
       });
+      console.log('   📊 Persons after tag filter:', filteredPersons.length);
     }
 
-    // Now apply name and memory hooks search
+    // Now apply name and memory hooks search with scoring
     filteredPersons.forEach(person => {
       let score = 0;
       let matchContext = '';
+      let hasMatch = false;
 
       // Name matching (highest weight)
       if (query.name && query.name.trim()) {
         const nameQuery = query.name.toLowerCase();
         const personName = person.name.toLowerCase();
         if (personName.includes(nameQuery)) {
+          hasMatch = true;
           score += 100;
           const exactMatch = personName === nameQuery;
           const startsWithMatch = personName.startsWith(nameQuery);
@@ -243,6 +297,7 @@ export class SearchService {
           result.result.includes(person.id)
         );
         if (foundInMemory) {
+          hasMatch = true;
           score += 30;
           // Get snippet from memory hooks
           const hooks = person.memoryHooks || '';
@@ -268,6 +323,7 @@ export class SearchService {
           result.result.includes(person.id)
         );
         if (foundInNotes) {
+          hasMatch = true;
           score += 30;
           // Get snippet from notes
           const allNotes = person.notes ? person.notes.map(n => n.content).join(' ') : '';
@@ -286,7 +342,12 @@ export class SearchService {
         }
       }
 
-      // Tags match (already filtered above, but add to score)
+      // If text search criteria provided but no match, skip this person
+      if ((query.name || query.memoryHooks || query.notes) && !hasMatch) {
+        return;
+      }
+
+      // Add score for tags (already filtered above)
       if (query.tags && query.tags.length > 0) {
         score += 20;
         const matchedTags = person.tags.filter(t => 
@@ -297,13 +358,13 @@ export class SearchService {
         }
       }
 
-      // Gender match (already filtered, add to score)
-      if (query.gender) {
+      // Add score for gender (already filtered above)
+      if (query.genders && query.genders.length > 0) {
         score += 10;
       }
 
-      // Only include if there's a match
-      if (score > 0) {
+      // Add result if has text match OR only filters provided
+      if (hasMatch || (!query.name && !query.memoryHooks && !query.notes)) {
         results.set(person.id, {
           ...person,
           relevanceScore: score,
@@ -311,15 +372,6 @@ export class SearchService {
         });
       }
     });
-
-    // If no specific query criteria, return all filtered persons
-    if (!query.name && !query.memoryHooks && (!query.tags || query.tags.length === 0) && !query.gender) {
-      return filteredPersons.map(person => ({
-        ...person,
-        relevanceScore: 1,
-        matchContext: `Name: ${person.name}`,
-      })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }
 
     // Sort by relevance score
     return Array.from(results.values()).sort((a, b) => b.relevanceScore - a.relevanceScore);
@@ -335,9 +387,6 @@ export class SearchService {
 
     const firestore = getFirestoreService();
     const personsCollection = firestore.collection('persons');
-    
-    // Web search has limitations - can't do full-text search on memoryHooks
-    // We'll query based on available fields and filter client-side
     
     let persons: Person[] = [];
 
@@ -358,20 +407,56 @@ export class SearchService {
       } as Person;
     });
 
-    // Client-side filtering and scoring for web
+    console.log('🔍 searchWeb called with query:', JSON.stringify(query));
+    console.log('   Persons from Firestore:', persons.length);
+    console.log('   Available genders:', Array.from(new Set(persons.map(p => p.gender))));
+
+    // Apply gender filter (hard filter)
+    if (query.genders && query.genders.length > 0) {
+      console.log('   🔍 Gender filter requested:', query.genders);
+      console.log('   📊 Persons before gender filter:', persons.length);
+      persons.forEach(p => {
+        const isMatch = query.genders!.includes(p.gender!);
+        console.log(`     ${isMatch ? '✓' : '✗'} "${p.name}" gender="${p.gender}" vs query=[${query.genders!.join(',')}]`);
+      });
+      persons = persons.filter(p => query.genders!.includes(p.gender!));
+      console.log('   📊 Persons after gender filter:', persons.length);
+    }
+
+    // Apply tags filter (hard filter - OR logic)
+    if (query.tags && query.tags.length > 0) {
+      console.log('   🔍 Tags filter requested:', query.tags);
+      console.log('   📊 Persons before tag filter:', persons.length);
+      console.log('   📋 All available tags in database:', 
+        Array.from(new Set(this.persons.flatMap(p => p.tags))).join(', '));
+      const searchTags = query.tags.map(t => t.toLowerCase());
+      console.log('   Lowercased search tags:', searchTags);
+      persons.forEach(p => {
+        const personTags = p.tags.map(t => t.toLowerCase());
+        const hasMatch = searchTags.some(st => personTags.includes(st));
+        console.log(`     ${hasMatch ? '✓' : '✗'} "${p.name}" tags [${p.tags.join(',')}] vs query [${query.tags.join(',')}]`);
+      });
+      persons = persons.filter(p => {
+        const personTags = p.tags.map(t => t.toLowerCase());
+        return searchTags.some(st => personTags.includes(st));
+      });
+      console.log('   📊 Persons after tag filter:', persons.length);
+    }
+
+    // Client-side filtering and scoring for remaining criteria
     const results: SearchResult[] = [];
 
     persons.forEach(person => {
       let score = 0;
       let matchContext = '';
-      let matches = false;
+      let hasMatch = false;
 
       // Name search (starts with or contains)
       if (query.name && query.name.trim()) {
         const nameQuery = query.name.toLowerCase();
         const personName = person.name.toLowerCase();
         if (personName.includes(nameQuery)) {
-          matches = true;
+          hasMatch = true;
           score += 100;
           if (personName === nameQuery) score += 50;
           else if (personName.startsWith(nameQuery)) score += 25;
@@ -379,13 +464,12 @@ export class SearchService {
         }
       }
 
-      // Note: memoryHooks full-text search not available on web in V1
-      // Basic keyword matching as fallback
+      // Memory hooks search
       if (query.memoryHooks && query.memoryHooks.trim()) {
         const keywords = query.memoryHooks.toLowerCase().split(/\s+/);
         const hooksLower = (person.memoryHooks || '').toLowerCase();
         if (keywords.some(keyword => hooksLower.includes(keyword))) {
-          matches = true;
+          hasMatch = true;
           score += 30;
           const matchWord = keywords.find(word => hooksLower.includes(word));
           if (matchWord) {
@@ -407,7 +491,7 @@ export class SearchService {
         const allNotes = person.notes ? person.notes.map(n => n.content).join(' ') : '';
         const notesLower = allNotes.toLowerCase();
         if (keywords.some(keyword => notesLower.includes(keyword))) {
-          matches = true;
+          hasMatch = true;
           score += 30;
           const matchWord = keywords.find(word => notesLower.includes(word));
           if (matchWord) {
@@ -422,33 +506,30 @@ export class SearchService {
         }
       }
 
-      // Tags search
+      // If text search criteria provided but no match, skip this person
+      if ((query.name || query.memoryHooks || query.notes) && !hasMatch) {
+        return;
+      }
+
+      // Add score for tags (already filtered above)
       if (query.tags && query.tags.length > 0) {
+        score += 20;
         const searchTags = query.tags.map(t => t.toLowerCase());
-        const personTags = person.tags.map(t => t.toLowerCase());
-        if (searchTags.some(st => personTags.includes(st))) {
-          matches = true;
-          score += 20;
-          const matchedTags = person.tags.filter(t => 
-            searchTags.includes(t.toLowerCase())
-          );
-          if (!matchContext) {
-            matchContext = `Tags: ${matchedTags.join(', ')}`;
-          }
+        const matchedTags = person.tags.filter(t => 
+          searchTags.includes(t.toLowerCase())
+        );
+        if (matchedTags.length > 0 && !matchContext) {
+          matchContext = `Tags: ${matchedTags.join(', ')}`;
         }
       }
 
-      // Gender filter
-      if (query.gender) {
-        if (person.gender === query.gender) {
-          matches = true;
-          score += 10;
-        } else {
-          matches = false; // Gender is a hard filter
-        }
+      // Add score for gender (already filtered above)
+      if (query.genders && query.genders.length > 0) {
+        score += 10;
       }
 
-      if (matches) {
+      // Add result if has text match OR only filters provided
+      if (hasMatch || (!query.name && !query.memoryHooks && !query.notes)) {
         results.push({
           ...person,
           relevanceScore: score,
@@ -456,15 +537,6 @@ export class SearchService {
         });
       }
     });
-
-    // If no query criteria, return all persons
-    if (!query.name && !query.memoryHooks && (!query.tags || query.tags.length === 0) && !query.gender) {
-      return persons.map(person => ({
-        ...person,
-        relevanceScore: 1,
-        matchContext: `Name: ${person.name}`,
-      })).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-    }
 
     return results.sort((a, b) => b.relevanceScore - a.relevanceScore);
   }

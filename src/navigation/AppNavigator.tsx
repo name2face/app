@@ -6,6 +6,7 @@ import { SearchResult } from '../types';
 
 // Auth screens
 import LoginScreen from '../screens/LoginScreen';
+import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
 
 // Main screens
 import HomeScreen from '../screens/HomeScreen';
@@ -19,6 +20,7 @@ import ContactsListScreen from '../screens/ContactsListScreen';
 
 export type RootStackParamList = {
   Login: undefined;
+  ForgotPassword: undefined;
   Home: undefined;
   AddPerson: undefined;
   AddDetails: { personId?: string; name?: string };
@@ -50,53 +52,81 @@ const AppNavigator: React.FC = () => {
       <Stack.Navigator>
         {!isAppAccessible ? (
           // Auth stack
-          <Stack.Screen 
-            name="Login" 
-            component={LoginScreen} 
-            options={{ headerShown: false }}
-          />
+          <>
+            <Stack.Screen 
+              name="Login" 
+              component={LoginScreen} 
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+              name="ForgotPassword" 
+              component={ForgotPasswordScreen} 
+              options={{ title: 'Forgot Password' }}
+            />
+          </>
         ) : (
           // Main app stack
           <>
             <Stack.Screen 
               name="Home" 
               component={HomeScreen}
-              options={{ title: 'Name2Face' }}
+              options={{ title: 'Name2Face', headerShown: true }}
             />
             <Stack.Screen 
               name="AddPerson" 
               component={AddPersonScreen}
-              options={{ title: 'New Name to Face' }}
+              options={{ 
+                title: 'New Name to Face',
+                headerBackTitle: 'Back',
+              }}
             />
             <Stack.Screen 
               name="AddDetails" 
               component={AddDetailsScreen}
-              options={{ title: 'Add Details' }}
+              options={{ 
+                title: 'Add Details',
+                headerBackTitle: 'Back',
+              }}
             />
             <Stack.Screen 
               name="EditDetails" 
               component={EditDetailsScreen}
-              options={{ title: 'Edit Details' }}
+              options={{ 
+                title: 'Edit Details',
+                headerBackTitle: 'Back',
+              }}
             />
             <Stack.Screen 
               name="SearchQuery" 
               component={SearchQueryScreen}
-              options={{ title: 'Recall Name to Face' }}
+              options={{ 
+                title: 'Recall Name to Face',
+                headerBackTitle: 'Back',
+              }}
             />
             <Stack.Screen 
               name="SearchResults" 
               component={SearchResultsScreen}
-              options={{ title: 'Search Results' }}
+              options={{ 
+                title: 'Search Results',
+                headerBackTitle: 'Back',
+              }}
             />
             <Stack.Screen 
               name="PersonDetail" 
               component={PersonDetailScreen}
-              options={{ title: 'Person Details' }}
+              options={{ 
+                title: 'Person Details',
+                headerBackTitle: 'Back',
+              }}
             />
             <Stack.Screen 
               name="ContactsList" 
               component={ContactsListScreen}
-              options={{ title: 'My Contacts' }}
+              options={{ 
+                title: 'My Contacts',
+                headerBackTitle: 'Back',
+              }}
             />
           </>
         )}
