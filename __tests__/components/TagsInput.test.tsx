@@ -3,9 +3,9 @@ import { render, fireEvent } from '@testing-library/react-native';
 import TagsInput from '../../src/components/TagsInput';
 
 describe('TagsInput', () => {
-  it('should render quick tags', () => {
+  it('should render quick tags', async () => {
     const mockOnTagsChange = jest.fn();
-    const { getByText } = render(
+    const { getByText } = await render(
       <TagsInput selectedTags={[]} onTagsChange={mockOnTagsChange} />
     );
 
@@ -16,34 +16,34 @@ describe('TagsInput', () => {
     expect(getByText('Hobby')).toBeTruthy();
   });
 
-  it('should toggle tag selection', () => {
+  it('should toggle tag selection', async () => {
     const mockOnTagsChange = jest.fn();
-    const { getByText } = render(
+    const { getByText } = await render(
       <TagsInput selectedTags={[]} onTagsChange={mockOnTagsChange} />
     );
 
     const workTag = getByText('Work');
-    fireEvent.press(workTag);
+    await fireEvent.press(workTag);
 
     expect(mockOnTagsChange).toHaveBeenCalledWith(['Work']);
   });
 
-  it('should remove selected tag', () => {
+  it('should remove selected tag', async () => {
     const mockOnTagsChange = jest.fn();
-    const { getAllByText } = render(
+    const { getAllByText } = await render(
       <TagsInput selectedTags={['Work', 'Social']} onTagsChange={mockOnTagsChange} />
     );
 
     // Get the first Work tag (in the quick tags section)
     const workTags = getAllByText('Work');
-    fireEvent.press(workTags[0]);
+    await fireEvent.press(workTags[0]);
 
     expect(mockOnTagsChange).toHaveBeenCalledWith(['Social']);
   });
 
-  it('should display selected tags', () => {
+  it('should display selected tags', async () => {
     const mockOnTagsChange = jest.fn();
-    const { getAllByText } = render(
+    const { getAllByText } = await render(
       <TagsInput selectedTags={['Work', 'Custom Tag']} onTagsChange={mockOnTagsChange} />
     );
 
@@ -51,14 +51,14 @@ describe('TagsInput', () => {
     expect(selectedTags.length).toBeGreaterThan(0);
   });
 
-  it('should not allow editing when editable is false', () => {
+  it('should not allow editing when editable is false', async () => {
     const mockOnTagsChange = jest.fn();
-    const { getByText } = render(
+    const { getByText } = await render(
       <TagsInput selectedTags={[]} onTagsChange={mockOnTagsChange} editable={false} />
     );
 
     const workTag = getByText('Work');
-    fireEvent.press(workTag);
+    await fireEvent.press(workTag);
 
     expect(mockOnTagsChange).not.toHaveBeenCalled();
   });

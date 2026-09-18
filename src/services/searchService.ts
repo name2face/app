@@ -508,6 +508,7 @@ export class SearchService {
 
       // If text search criteria provided but no match, skip this person
       if ((query.name || query.memoryHooks || query.notes) && !hasMatch) {
+        console.log(`   Skipping "${person.name}" - text search provided but no match`);
         return;
       }
 
