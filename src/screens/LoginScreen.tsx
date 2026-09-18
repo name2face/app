@@ -165,6 +165,10 @@ const LoginScreen: React.FC = () => {
 
           <Text style={styles.note}>
             Note: This is a V1 implementation. Google and Apple Sign-in will be added in future updates.
+            {'\n'}
+            {process.env.EXPO_PUBLIC_BUILD_DATE
+              ? `Built: ${process.env.EXPO_PUBLIC_BUILD_DATE}`
+              : 'Local development build'}
           </Text>
         </View>
       </ScrollView>
