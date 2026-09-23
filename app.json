@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Name2FaceApp",
+    "name": "Name2Face",
     "slug": "Name2FaceApp",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/name2face-icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/name2face-icon.png",
@@ -24,7 +24,8 @@
         "foregroundImage": "./assets/name2face-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.name2face.Name2FaceApp"
+      "package": "com.name2face.Name2FaceApp",
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -34,15 +35,6 @@
         "projectId": "52b51aa3-1497-4cda-bab4-375ba12ab90e"
       }
     },
-    "plugins": [
-      [
-        "expo-build-properties",
-        {
-          "ios": {
-            "useFrameworks": "static"
-          }
-        }
-      ]
-    ]
+    "plugins": ["expo-sqlite", "expo-document-picker", "expo-system-ui"]
   }
 }

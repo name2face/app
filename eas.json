@@ -12,10 +12,10 @@
       "distribution": "internal"
     },
     "production": {
-      "node": "20.19.4",
+      "node": "24.21.0",
       "autoIncrement": true,
       "cache": {
-        "key": "sdk54-firebase-stable-v1"
+        "key": "sdk57-local-sqlite-v1"
       }
     }
   },

@@ -1,83 +1,57 @@
-import React, { useEffect, useState } from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { initializeFirebase } from './src/services/firebase';
-import { AuthProvider } from './src/contexts/AuthContext';
-import { DataProvider } from './src/contexts/DataContext';
-import AppNavigator from './src/navigation/AppNavigator';
-
+import React from "react";
+import { ActivityIndicator, View } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { StatusBar } from "expo-status-bar";
+import { LibraryProvider, useLibrary } from "./src/contexts/LibraryContext";
+import { Button, ConfirmProvider, Copy, useTheme } from "./src/components/ui";
+import AppNavigator from "./src/navigation/AppNavigator";
+function Content() {
+  const { loading, error, retry } = useLibrary();
+  const t = useTheme();
+  if (loading || error)
+    return (
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: t.bg,
+          justifyContent: "center",
+          padding: 32,
+          gap: 20,
+        }}
+      >
+        {loading ? (
+          <>
+            <ActivityIndicator color={t.primary} />
+            <Copy style={{ textAlign: "center" }}>
+              Opening your local library…
+            </Copy>
+          </>
+        ) : (
+          <>
+            <Copy style={{ fontSize: 24, fontWeight: "700" }}>
+              Your library couldn’t be opened.
+            </Copy>
+            <Copy>{error}</Copy>
+            <Copy muted>
+              Your saved data has not been reset. Check that local storage is
+              available, then try again.
+            </Copy>
+            <Button title="Try again" onPress={retry} />
+          </>
+        )}
+      </View>
+    );
+  return <AppNavigator />;
+}
 export default function App() {
-  const [initializing, setInitializing] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    initializeApp();
-  }, []);
-
-  const initializeApp = async () => {
-    try {
-      await initializeFirebase();
-      setInitializing(false);
-    } catch (err: any) {
-      console.error('Failed to initialize Firebase:', err);
-      setError(err.message || 'Failed to initialize app');
-      setInitializing(false);
-    }
-  };
-
-  if (initializing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Initializing...</Text>
-      </View>
-    );
-  }
-
-  if (error) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Error: {error}</Text>
-        <Text style={styles.errorHint}>
-          Please ensure Firebase is properly configured
-        </Text>
-      </View>
-    );
-  }
-
   return (
-    <AuthProvider>
-      <DataProvider>
-        <AppNavigator />
-        <StatusBar style="auto" />
-      </DataProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <LibraryProvider>
+        <ConfirmProvider>
+          <Content />
+          <StatusBar style="auto" />
+        </ConfirmProvider>
+      </LibraryProvider>
+    </SafeAreaProvider>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-  },
-  loadingText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: '#666',
-  },
-  errorText: {
-    fontSize: 16,
-    color: '#FF3B30',
-    marginBottom: 10,
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-  errorHint: {
-    fontSize: 14,
-    color: '#999',
-    textAlign: 'center',
-    paddingHorizontal: 20,
-  },
-});

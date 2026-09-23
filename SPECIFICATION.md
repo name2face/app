@@ -1,106 +1,34 @@
-# Name2Face App - Specification Document (V1 Final Draft)
+# Name2Face — local V1
 
-This document outlines the planned features, design considerations, and technical decisions for the Name2Face application's Version 1 launch. It serves as the authoritative guide for development.
+## Product
 
-**Status:** Final Draft - Sections 1-4 & 6-7 finalized. Section 5 (Technical Decisions) requires final definition of three key implementation items.
+Quickly enter a person's name and a few details, then reverse the process to recall the name from those details. No photos or account are needed.
 
-## 1. Core Purpose & Vision (Finalized)
+## Screens
 
-* **Goal:** Help users easily remember names and associated details ("memory hooks") about people they meet.
-* **Primary Use Case:** Quickly log key info (at least name); easily retrieve it later by searching memory hooks or tags.
-* **Target Audience:** Everyone (Focus on general usability for remembering names and key details).
+1. **Home:** 2×2 Add a Name / Recall a Name / All Names / All Groups grid, full-width Name Game, settings gear.
+2. **Add / Edit:** Full name (required), optional multiple groups, hook chips, free-form Notes & Reminders. Comma, Enter, or Add hook commits a chip; saving also commits pending hook text. Keyboard opens on tap. Duplicate names offer editing an existing entry, saving separately, or cancelling.
+3. **Recall:** Same field order; live results under the form. Partial, case-insensitive matching. Every entered field and hook narrows the result (AND); each hook may match a substring of any saved hook. All groups means everyone; None means ungrouped. Specific group means membership in that group. Clear clues restores the initial state.
+4. **All Names:** Total count, text filter, A–Z sections or newest first. Tap a card for details, editing, or confirmed deletion.
+5. **All Groups:** Counts, group member directories, create/rename, membership editing, confirmed deletion. Deleting a group removes only that membership.
+6. **Name Game:** Choose all, none, or a specific group. Randomly select up to five eligible entries; tap a name and clue in either order. Correct pairs lock and show a checkmark; mistakes permit retry. Show attempts, completion, replay, and home. At least two entries with distinct names and clues are required; duplicate names/clues and empty clues are excluded to avoid ambiguous answers. Hooks are used when available, otherwise notes.
+7. **Settings:** Encrypted JSON export, file-picker restore, and reset. Export requires a matching password of at least ten characters. Restore decrypts and validates the entire graph, then asks before replacing. Reset requires typing DELETE and a second confirmation. Device/browser storage behavior is explained.
 
-## 2. Data Model (Confirmed)
+## Design
 
-The V1 data model consists of seven fields stored per person:
+System light/dark themes, warm neutral surfaces, green actions, and a muted orange game banner. Clearly labeled fields, touch-friendly controls, flexible text wrapping, accessible buttons, scrollable forms, and helpful empty/error states. No fabricated sample people.
 
-| Field | Type | Required | Notes |
-| :--- | :--- | :--- | :--- |
-| `id` | INTEGER | Yes | Unique identifier (Primary Key). |
-| `name` | Text | Yes | Must be non-empty after trimming. |
-| `memoryHooks`| Text (long) | No | Free-form notes; used for full-text search. |
-| `tags` | Array of Text | No | Stores Quick Tags and Custom Tags. **V1 Strategy:** JSON string serialization for `expo-sqlite`. |
-| `gender` | Text | No | Options: "Female", "Male", "Other", or `null` ("Prefer not to specify"). |
-| `createdAt` | Timestamp | Yes | Auto-set. |
-| `updatedAt` | Timestamp | Yes | Auto-set. |
+## Data rules
 
----
+People have stable IDs, full name, notes, hook strings, group IDs, creation/update dates. Groups have stable IDs and names. Names are trimmed; hook strings are trimmed, lowercased, and deduplicated. Groups are unique ignoring case. Names can duplicate with a warning. Limits: 200-character names, 100-character hooks/group names, 10,000-character notes, 100 hooks per person, 50,000 people and 5,000 groups per import. Backup files are capped at 20 MB.
 
-## 3. Screen-by-Screen Specification (Confirmed UX/Order)
+Native SQLite uses person/groups/tags and membership tables with foreign keys and schema versioning. Writes and restores are atomic. Web uses a single validated localStorage snapshot. Changes publish to React state only after successful persistence. Read errors never silently reset the library.
 
-### 3.1 Home Screen (Navigation Hub)
+## Intentional interpretations of the Gemini discussion
 
-| CTA Button/Card | Icon Concept | Action/Navigation |
-| :--- | :--- | :--- |
-| **New Name to Face** | Conceptual logo with a **plus sign** (`+`). | Navigates to the **Add Person Screen** (Quick Add). |
-| **Recall Name to Face** | Conceptual logo with a **question mark** (`?`). | Navigates to the **Search Query Screen**. |
-
-### 3.2 Add Person Screen (Quick Add Flow)
-
-* **Purpose:** Capture name quickly.
-* **Validation:** Name must be non-empty after trimming.
-* **Loading Feedback:** **Spinning plus sign icon** while saving.
-* **Duplicate Dialog:** If name exists, prompts user with options: `Add Details`, `Save Anyway`, or `Cancel`.
-
-### 3.3 Add Details Screen (Full Detail Entry)
-
-**Field Order is Finalized: Name, Gender, Tags, Notes.**
-
-| Order | Component | Label/Behavior | Rules/Details |
-| :--- | :--- | :--- | :--- |
-| **1st** | **Name Input** | "Name". Editable. | Must be non-empty. |
-| **2nd** | **Gender Selection** | "Gender (Optional)" Picker/Dropdown. | Options: "Prefer not to specify" (default), "Female", "Male", "Other". |
-| **3rd** | **Tags Section** | **Title:** "The Goal of Remembering Who Someone Is and Where You Know Them From" | **Storage:** All tags are collected into one array. |
-| | **Quick Tags** | Tappable chips: **`Work`**, **`Social`**, **`Event`**, **`Service`**, **`Hobby`**. | Tapping adds/removes the tag. |
-| | **Custom Tags** | Dedicated **Input Field** (e.g., "Add Custom Tag"). | User types and confirms to add the tag. |
-| **4th** | **Notes Input** | "Memory Hooks / Notes for Recall". | Maps to `memoryHooks` data field. |
-| **Bottom** | **Button: `Save`** | Saves record. **Loading Feedback:** **Spinning plus sign icon**. | Navigates to **Person Detail Screen**. |
-
-### 3.4 Edit Details Screen
-
-* **Layout:** Identical to the Add Details Screen, with pre-populated, editable fields.
-* **Action:** Includes a prominent **`Delete` button** that requires confirmation.
-* **Save Logic:** Saves changes to the existing record.
-
-### 3.5 Search Query Screen
-
-**Field Order is Finalized to Mirror the Add Details Screen.**
-
-| Order | Field / Component | Purpose | Search Logic |
-| :--- | :--- | :--- | :--- |
-| **1st** | **Name Input** | Search by partial name fragment. | Partial, case-insensitive match on `name`. |
-| **2nd** | **Gender Filter** | Filter by a specific gender. | Filters records by `gender`. |
-| **3rd** | **Tags Input/Selector** | Search by one or more tags. | Finds records that include **any** of the selected/typed tags (Case-Insensitive). |
-| **4th** | **Memory Hooks Input** | Search by keywords in notes. | Executes **Full-Text Search (FTS)** on `memoryHooks`. |
-| **Button** | **`Search`** | Executes query. **Loading Feedback:** **Spinning question mark icon**. | Uses **OR logic** across all populated fields. |
-
-### 3.6 Search Results Screen
-
-* **Sort Order:** **By Relevance** (most relevant match first).
-* **Layout:** **Card Layout**. Each card shows the **`name`** and **context about the match** (snippet from memory hook or the matching tag).
-
-### 3.7 Person Detail Screen
-
-* **Display:** `Name` prominently. Conditionally displays `Tags` (as chips), `Gender` (if specified), `createdAt` date, and `Memory Hooks` text.
-* **Action:** Includes an **`Edit` button** in the header.
-
----
-
-## 4. Non-Functional Requirements (Confirmed)
-
-* **Offline Capability:** App must work fully offline for V1.
-* **Data Persistence:** Local data persists across app restarts.
-* **Performance:** Search must be responsive, even with hundreds of entries.
-
----
-
-## 5. Technical Decisions (Action Items Remain for Kevin)
-
-The framework and storage decisions are set, but the specific search implementation details below must be defined to finalize the specification.
-
-| Decision Area | Status | **Action Required to Finalize Spec** |
-| :--- | :--- | :--- |
-| **Framework/Storage** | Confirmed: React Native, Expo, TypeScript, **`expo-sqlite`**. | N/A |
-| **Relevance Scoring Algorithm** | Established Weighting: **Name** (Highest) > **Tags** > **Memory Hooks** (Lowest). | Define the exact mathematical logic for weighting and scoring matches. |
-| **FTS Implementation Plan** | Required for `memoryHooks`. | Define how to implement fast **Full-Text Search (FTS)** using `expo-sqlite`. |
-| **Tag Search Strategy** | Storage is **JSON string serialization**. | Define the most efficient SQL query method to search for a tag within the serialized JSON string. |
+- All/None are search concepts. During entry, None clears assignments and individual group chips assign memberships; All is not a stored group.
+- Five-pair matching is the chosen game; multiple choice was a suggestion, not a required second mode.
+- Encrypted backups use a real password and authenticated encryption rather than labeling plain JSON encrypted.
+- Notes remain free-form and searchable. They are not calendar reminders or notifications.
+- Fast live search is implemented without claiming a universal sub-5ms performance guarantee.
+- Local storage removes the contact backend; it does not establish a legal liability guarantee.

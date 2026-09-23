@@ -18,7 +18,7 @@ jobs:
           cache: 'npm'
 
       - name: 📦 Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: 🏗 Setup EAS
         uses: expo/expo-github-action@v8
@@ -42,11 +42,13 @@ jobs:
       - name: 🏗 Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: 📦 Install & Build Web
         run: |
-          npm install
+          npm ci
+          npm run typecheck
+          npm test -- --runInBand
           export EXPO_PUBLIC_BUILD_DATE="$(date -u '+%Y-%m-%d %H:%M:%S UTC')"
           npx expo export --platform web
 

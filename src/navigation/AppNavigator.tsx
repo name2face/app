@@ -1,142 +1,115 @@
-import React from 'react';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { useAuth } from '../contexts/AuthContext';
-import { SearchResult } from '../types';
-
-// Auth screens
-import LoginScreen from '../screens/LoginScreen';
-import { ForgotPasswordScreen } from '../screens/ForgotPasswordScreen';
-
-// Main screens
-import HomeScreen from '../screens/HomeScreen';
-import AddPersonScreen from '../screens/AddPersonScreen';
-import AddDetailsScreen from '../screens/AddDetailsScreen';
-import EditDetailsScreen from '../screens/EditDetailsScreen';
-import SearchQueryScreen from '../screens/SearchQueryScreen';
-import SearchResultsScreen from '../screens/SearchResultsScreen';
-import PersonDetailScreen from '../screens/PersonDetailScreen';
-import ContactsListScreen from '../screens/ContactsListScreen';
-
+import React from "react";
+import { Pressable } from "react-native";
+import {
+  NavigationContainer,
+  DarkTheme,
+  DefaultTheme,
+} from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useColorScheme } from "react-native";
+import HomeScreen from "../screens/HomeScreen";
+import AddNameScreen from "../screens/AddNameScreen";
+import RecallScreen from "../screens/RecallScreen";
+import AllNamesScreen from "../screens/AllNamesScreen";
+import GroupsScreen from "../screens/GroupsScreen";
+import PersonScreen from "../screens/PersonScreen";
+import GameScreen from "../screens/GameScreen";
+import SettingsScreen from "../screens/SettingsScreen";
+import { Icon, useTheme } from "../components/ui";
 export type RootStackParamList = {
-  Login: undefined;
-  ForgotPassword: undefined;
-  Home: undefined;
-  AddPerson: undefined;
-  AddDetails: { personId?: string; name?: string };
-  EditDetails: { personId: string };
-  SearchQuery: undefined;
-  SearchResults: { results: SearchResult[] };
-  PersonDetail: { personId: string };
-  ContactsList: undefined;
+  Home: { savedName?: string } | undefined;
+  AddName: { id?: string };
+  Recall: undefined;
+  AllNames: { groupId?: string };
+  Groups: { groupId?: string } | undefined;
+  Person: { id: string };
+  Game: undefined;
+  Settings: undefined;
 };
-
 const Stack = createNativeStackNavigator<RootStackParamList>();
-
-const AppNavigator: React.FC = () => {
-  const { user, loading, isLoggedOutMode } = useAuth();
-  
-  console.log('🧭 AppNavigator render - user:', user?.email || 'NULL', 'isLoggedOutMode:', isLoggedOutMode, 'loading:', loading);
-
-  if (loading) {
-    console.log('⏳ AppNavigator - Still loading auth state');
-    return null; // Or a loading screen
-  }
-
-  // Show main app if either user is logged in OR in logged out mode
-  const isAppAccessible = !!user || isLoggedOutMode;
-  console.log('📍 isAppAccessible:', isAppAccessible, '- showing', isAppAccessible ? 'APP' : 'LOGIN');
-
+export default function AppNavigator() {
+  const t = useTheme();
+  const dark = useColorScheme() === "dark";
   return (
-    <NavigationContainer>
+    <NavigationContainer
+      theme={{
+        ...(dark ? DarkTheme : DefaultTheme),
+        colors: {
+          ...(dark ? DarkTheme : DefaultTheme).colors,
+          background: t.bg,
+          card: t.bg,
+          text: t.ink,
+          primary: t.primary,
+          border: t.line,
+        },
+      }}
+    >
       <Stack.Navigator
         screenOptions={{
-          headerTintColor: '#333',
+          headerShadowVisible: false,
+          headerTintColor: t.ink,
+          headerStyle: { backgroundColor: t.bg },
+          headerTitleStyle: { fontWeight: "700" },
+          headerBackTitle: "Back",
+          contentStyle: { backgroundColor: t.bg },
         }}
       >
-        {!isAppAccessible ? (
-          // Auth stack
-          <>
-            <Stack.Screen 
-              name="Login" 
-              component={LoginScreen} 
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-              name="ForgotPassword" 
-              component={ForgotPasswordScreen} 
-              options={{ title: 'Forgot Password' }}
-            />
-          </>
-        ) : (
-          // Main app stack
-          <>
-            <Stack.Screen 
-              name="Home" 
-              component={HomeScreen}
-              options={{ title: 'Name2Face', headerShown: true }}
-            />
-            <Stack.Screen 
-              name="AddPerson" 
-              component={AddPersonScreen}
-              options={{ 
-                title: 'New Name to Face',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen 
-              name="AddDetails" 
-              component={AddDetailsScreen}
-              options={{ 
-                title: 'Add Details',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen 
-              name="EditDetails" 
-              component={EditDetailsScreen}
-              options={{ 
-                title: 'Edit Details',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen 
-              name="SearchQuery" 
-              component={SearchQueryScreen}
-              options={{ 
-                title: 'Recall Name to Face',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen 
-              name="SearchResults" 
-              component={SearchResultsScreen}
-              options={{ 
-                title: 'Search Results',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen 
-              name="PersonDetail" 
-              component={PersonDetailScreen}
-              options={{ 
-                title: 'Person Details',
-                headerBackTitle: 'Back',
-              }}
-            />
-            <Stack.Screen 
-              name="ContactsList" 
-              component={ContactsListScreen}
-              options={{ 
-                title: 'My Contacts',
-                headerBackTitle: 'Back',
-              }}
-            />
-          </>
-        )}
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={({ navigation }) => ({
+            title: "Name2Face",
+            headerRight: () => (
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Settings"
+                hitSlop={12}
+                onPress={() => navigation.navigate("Settings")}
+                style={{ padding: 10 }}
+              >
+                <Icon name="settings" size={21} />
+              </Pressable>
+            ),
+          })}
+        />
+        <Stack.Screen
+          name="AddName"
+          component={AddNameScreen}
+          options={({ route }) => ({
+            title: route.params.id ? "Edit Name" : "Add a Name",
+          })}
+        />
+        <Stack.Screen
+          name="Recall"
+          component={RecallScreen}
+          options={{ title: "Recall a Name" }}
+        />
+        <Stack.Screen
+          name="AllNames"
+          component={AllNamesScreen}
+          options={{ title: "All Names" }}
+        />
+        <Stack.Screen
+          name="Groups"
+          component={GroupsScreen}
+          options={{ title: "All Groups" }}
+        />
+        <Stack.Screen
+          name="Person"
+          component={PersonScreen}
+          options={{ title: "A familiar face" }}
+        />
+        <Stack.Screen
+          name="Game"
+          component={GameScreen}
+          options={{ title: "Name Game" }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: "Settings" }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
-};
-
-export default AppNavigator;
+}
